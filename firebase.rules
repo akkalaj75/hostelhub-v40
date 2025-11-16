@@ -1,0 +1,173 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isEmailVerified() {
+      return isAuthenticated() && request.auth.token.email_verified == true;
+    }
+    
+    function isValidTimestamp(timestamp) {
+      return timestamp is timestamp;
+    }
+    
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
+    
+    match /users/{userId} {
+      // Users can only read/write their own document
+      allow read: if isOwner(userId) && isEmailVerified();
+      
+      allow create: if isOwner(userId) 
+                    && isEmailVerified()
+                    && request.resource.data.keys().hasAll(['email', 'created', 'blockedUsers', 'reportCount'])
+                    && request.resource.data.blockedUsers is list
+                    && request.resource.data.reportCount is number
+                    && request.resource.data.reportCount == 0;
+      
+      allow update: if isOwner(userId)
+                    && isEmailVerified()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['blockedUsers', 'lastUpdated', 'reportCount', 'lastReported']);
+    }
+    
+    // ============================================
+    // WAITING QUEUE
+    // ============================================
+    
+    match /waiting/{userId} {
+      // Only verified users can access waiting queue
+      allow read: if isEmailVerified();
+      
+      allow create: if isOwner(userId)
+                    && isEmailVerified()
+                    && request.resource.data.keys().hasAll(['userId', 'gender', 'college', 'commType', 'interests', 'timestamp', 'searching'])
+                    && request.resource.data.userId == userId
+                    && request.resource.data.gender in ['men', 'women', 'other']
+                    && request.resource.data.commType in ['video', 'voice', 'chat']
+                    && request.resource.data.interests is list
+                    && request.resource.data.interests.size() <= 5
+                    && request.resource.data.searching is bool;
+      
+      allow update: if isOwner(userId)
+                    && isEmailVerified()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['searching', 'matched']);
+      
+      allow delete: if isOwner(userId) && isEmailVerified();
+    }
+    
+    // ============================================
+    // CALLS COLLECTION
+    // ============================================
+    
+    match /calls/{callId} {
+      // Users can access call if they're a participant
+      function isParticipant() {
+        return isEmailVerified() 
+               && request.auth.uid in resource.data.users;
+      }
+      
+      function isCallParticipant() {
+        return isEmailVerified()
+               && request.auth.uid in request.resource.data.users;
+      }
+      
+      allow read: if isParticipant();
+      
+      allow create: if isEmailVerified()
+                    && request.resource.data.keys().hasAll(['users', 'initiator', 'status', 'timestamp'])
+                    && request.resource.data.users is list
+                    && request.resource.data.users.size() == 2
+                    && request.auth.uid in request.resource.data.users
+                    && request.resource.data.initiator == request.auth.uid
+                    && request.resource.data.status in ['connecting', 'connected'];
+      
+      allow update: if isParticipant()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['offer', 'answer', 'status', 'iceRestart', 'timestamp']);
+      
+      allow delete: if isParticipant();
+      
+      // ============================================
+      // CANDIDATES SUBCOLLECTION
+      // ============================================
+      
+      match /candidates/{candidateId} {
+        allow read: if isParticipant();
+        
+        allow create: if isParticipant()
+                      && request.resource.data.keys().hasAll(['candidate', 'from', 'timestamp'])
+                      && request.resource.data.from == request.auth.uid;
+        
+        allow delete: if isParticipant();
+      }
+      
+      // ============================================
+      // MESSAGES SUBCOLLECTION
+      // ============================================
+      
+      match /messages/{messageId} {
+        allow read: if isParticipant();
+        
+        allow create: if isParticipant()
+                      && request.resource.data.keys().hasAll(['text', 'from', 'timestamp'])
+                      && request.resource.data.from == request.auth.uid
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 500;
+        
+        allow delete: if isParticipant();
+      }
+    }
+    
+    // ============================================
+    // REPORTS COLLECTION
+    // ============================================
+    
+    match /reports/{reportId} {
+      // Users can create reports and read their own
+      allow read: if isEmailVerified() 
+                  && request.auth.uid == resource.data.reportedBy;
+      
+      allow create: if isEmailVerified()
+                    && request.resource.data.keys().hasAll(['reportedBy', 'reportedUser', 'reason', 'timestamp', 'status'])
+                    && request.resource.data.reportedBy == request.auth.uid
+                    && request.resource.data.reportedUser != request.auth.uid
+                    && request.resource.data.reason in ['inappropriate', 'harassment', 'spam', 'contact-sharing', 'underage', 'other']
+                    && request.resource.data.status == 'pending';
+    }
+    
+    // ============================================
+    // STATUS COLLECTION (Online Tracking)
+    // ============================================
+    
+    match /status/{userId} {
+      // Anyone can read status for online counter
+      allow read: if isEmailVerified();
+      
+      // Only owner can write their status
+      allow write: if isOwner(userId)
+                   && isEmailVerified()
+                   && request.resource.data.keys().hasAll(['online', 'lastSeen'])
+                   && request.resource.data.online is bool;
+    }
+    
+    // ============================================
+    // DENY EVERYTHING ELSE
+    // ============================================
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
