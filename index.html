@@ -1,13 +1,269 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HostelHub V40</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Connect anonymously with verified college students through video, voice, or chat. Safe and fun.">
+  <meta name="keywords" content="college chat, student video call, anonymous chat, omegle for students">
+  <meta name="author" content="HostelHub">
+  <meta name="theme-color" content="#0a0e27">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="HostelHub - Connect with College Students">
+  <meta property="og:description" content="Video chat, voice call, or text with verified college students anonymously.">
+  
+  <title>HostelHub - Connect with College Students Anonymously</title>
+
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="app"></div>
-  <script type="module" src="/src/main.js"></script>
+  <div class="bg-animated"></div>
+  <div id="live-users-counter"></div>
+
+  <!-- Navigation -->
+  <nav>
+    <div class="logo">HostelHub</div>
+    <div class="menu-toggle">☰</div>
+    <div class="nav-links" id="navLinks">
+      <a href="#features">Features</a>
+      <a href="#about">About</a>
+      <a href="#" class="nav-cta">Get Started</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <h1>Connect with College Students Anonymously</h1>
+    <p>Video chat, voice call, or text with verified students. Safe, anonymous, and fun.</p>
+    <button class="cta-btn">Start Matching Now →</button>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="feature-card">
+      <div class="feature-icon">📹</div>
+      <h3>Video & Voice</h3>
+      <p>High-quality video calls or voice-only chats with crystal clear audio</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎭</div>
+      <h3>Anonymous Matching</h3>
+      <p>Connect randomly with verified students while staying anonymous</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💬</div>
+      <h3>Text Chat</h3>
+      <p>Prefer typing? Use our instant text chat with save feature</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🛡️</div>
+      <h3>Safe & Secure</h3>
+      <p>Report/block features, no personal info shared, email verification required</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⭐️</div>
+      <h3>Skip Anytime</h3>
+      <p>Not feeling the vibe? Skip to the next person instantly</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3>Interest Matching</h3>
+      <p>Add interests and find people with similar hobbies</p>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section" id="about">
+    <h2>Ready to make new friends?</h2>
+    <p>Join thousands of students connecting daily</p>
+    <button class="cta-btn">Launch HostelHub →</button>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2024 HostelHub. All rights reserved. Made with ❤️ for college students.</p>
+  </footer>
+
+  <!-- App Modal -->
+  <div id="appModal" class="app-modal">
+    <div class="app-container">
+      <button class="close-btn">×</button>
+      
+      <div class="app-header">
+        <h1>HostelHub</h1>
+        <p class="subtitle">Connect with students anonymously</p>
+      </div>
+
+      <!-- Login Screen -->
+      <div id="login-screen" class="screen active">
+        <input id="email" type="email" placeholder="your.email@gmail.com" />
+        <input id="password" type="password" placeholder="Password (6+ characters)" />
+        
+        <button id="signupBtn">Sign Up</button>
+        <button id="loginBtn" class="btn-secondary">Login</button>
+        <button id="forgotPasswordBtn" class="btn-secondary small">Forgot Password?</button>
+        
+        <div class="notice" style="display: none;" id="verify-notice">
+          ✉️ Verification email sent! Check your inbox and click the link.
+        </div>
+        
+        <div class="notice" style="display: none;" id="reset-notice">
+          🔧 Password reset email sent! Check your inbox.
+        </div>
+        
+        <div class="safety-note">
+          🔒 Works with any email • Anonymous matching • No personal info shared
+        </div>
+      </div>
+
+      <!-- Setup Screen -->
+      <div id="setup-screen" class="screen">
+        <p class="subtitle">Logged in as: <span id="user-email"></span></p>
+        
+        <div class="section-label">Communication Type:</div>
+        <div class="comm-types">
+          <div class="comm-type active" data-type="video">
+            <div class="comm-type-icon">📹</div>
+            <div class="comm-type-label">Video</div>
+          </div>
+          <div class="comm-type" data-type="voice">
+            <div class="comm-type-icon">🎤</div>
+            <div class="comm-type-label">Voice</div>
+          </div>
+          <div class="comm-type" data-type="chat">
+            <div class="comm-type-icon">💬</div>
+            <div class="comm-type-label">Chat</div>
+          </div>
+        </div>
+        
+        <select id="gender">
+          <option value="">Select your gender</option>
+          <option value="men">Men</option>
+          <option value="women">Women</option>
+          <option value="other">Other</option>
+        </select>
+
+        <select id="college">
+          <option value="">Select your college</option>
+          <option value="IIT Delhi">IIT Delhi</option>
+          <option value="IIT Bombay">IIT Bombay</option>
+          <option value="JNTUK">JNTUK</option>
+          <option value="KL University">KL University</option>
+          <option value="VIT AP">VIT AP</option>
+          <option value="Delhi University">Delhi University</option>
+          <option value="Harvard">Harvard University</option>
+          <option value="MIT">MIT</option>
+          <option value="Stanford">Stanford University</option>
+          <option value="Other">Other</option>
+          <option value="ANY">🌍 Match with Anyone</option>
+        </select>
+        
+        <div class="interests-section">
+          <div class="section-label">Add interests (optional - max 5):</div>
+          <div class="interests-input">
+            <input id="interest-input" type="text" placeholder="e.g., cricket, coding, music" maxlength="20" />
+            <button id="add-interest-btn" class="btn-small">Add</button>
+          </div>
+          <div class="interest-tags" id="interest-tags"></div>
+        </div>
+
+        <div class="blocked-section" id="blocked-section" style="display: none;">
+          <div class="section-label">Blocked Users:</div>
+          <div id="blocked-list"></div>
+        </div>
+
+        <button id="findBtn" class="btn-primary">🔍 Find Match</button>
+        <button id="logoutBtn" class="btn-secondary">Logout</button>
+        
+        <div class="safety-note">
+          You'll be matched with someone from the same college and gender.
+          <span class="warning">Never share personal contact info.</span>
+        </div>
+      </div>
+
+      <div id="status" class="status-message"></div>
+
+      <!-- Video Container -->
+      <div id="video-container" style="display: none;">
+        <div class="stranger-info" id="stranger-info"></div>
+        
+        <div class="connection-status">
+          Connection: <span id="quality">Connecting...</span>
+        </div>
+        
+        <div id="videos">
+          <video id="remote-video" autoplay playsinline></video>
+          <video id="local-video" autoplay playsinline muted></video>
+        </div>
+        
+        <div class="video-controls">
+          <button id="muteBtn">🔇 Mute</button>
+          <button id="videoBtn">📹 Off</button>
+          <button id="skipBtn" class="btn-warning">⭐️ Skip</button>
+          <button id="reportBtn" class="btn-report">🚨 Report</button>
+          <button id="endCall" class="btn-danger">❌ End</button>
+        </div>
+        
+        <div class="safety-note">
+          <span class="warning">⚠️</span> Report inappropriate behavior immediately.
+        </div>
+      </div>
+      
+      <!-- Chat Container -->
+      <div id="chat-container" style="display: none;">
+        <div class="stranger-info" id="stranger-info-chat"></div>
+        
+        <div id="chat-messages"></div>
+        
+        <div class="chat-input-area">
+          <input id="chat-input" type="text" placeholder="Type a message..." maxlength="500" />
+          <button id="send-btn" class="btn-small">Send</button>
+        </div>
+        
+        <div class="chat-controls">
+          <button id="skipBtnChat" class="btn-warning">⭐️ Skip</button>
+          <button id="reportBtnChat" class="btn-report">🚨 Report</button>
+          <button id="saveChatBtn" class="btn-success">💾 Save</button>
+          <button id="endChat" class="btn-danger">❌ End</button>
+        </div>
+        
+        <div class="safety-note">
+          <span class="warning">⚠️</span> Never share phone numbers, email, or social media.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Modal -->
+  <div id="reportModal" class="modal">
+    <div class="modal-content">
+      <h3>🚨 Report User</h3>
+      <p class="modal-description">Why are you reporting this user?</p>
+      <select id="reportReason">
+        <option value="">Select a reason</option>
+        <option value="inappropriate">Inappropriate behavior</option>
+        <option value="harassment">Harassment or bullying</option>
+        <option value="spam">Spam or advertising</option>
+        <option value="contact-sharing">Sharing contact information</option>
+        <option value="underage">Appears to be underage</option>
+        <option value="other">Other</option>
+      </select>
+      <textarea id="reportDetails" placeholder="Additional details (optional)"></textarea>
+      <div class="modal-buttons">
+        <button id="cancelReport" class="btn-secondary">Cancel</button>
+        <button id="submitReport" class="btn-danger">Submit Report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+
+  <!-- App Scripts -->
+  <script type="module" src="src/main.js"></script>
 </body>
 </html>
