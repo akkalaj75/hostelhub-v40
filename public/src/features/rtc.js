@@ -1,4 +1,4 @@
-import { db, firebase } from '../services/firestore.js';
+﻿import { db, firebase } from '../services/firestore.js';
 import { state } from '../core/state.js';
 import { showStatus, updateConnectionQuality } from '../ui/screens.js';
 import { ICE_SERVERS, APP_CONSTANTS } from '../config.js';
@@ -427,6 +427,17 @@ function stopStatsMonitoring() {
 }
 
 /**
+ * Reset RTC timers/buffers between calls
+ */
+export function resetRtcState() {
+  clearConnectionTimeout();
+  stopStatsMonitoring();
+  reconnectAttempts = 0;
+  remoteDescriptionSet = false;
+  candidateBuffer.length = 0;
+}
+
+/**
  * Toggle audio mute
  */
 export function toggleAudio() {
@@ -483,7 +494,7 @@ function showPlayButton() {
   if (!remoteVideo) return;
 
   const playBtn = document.createElement('button');
-  playBtn.textContent = '▶️ Tap to Play';
+    playBtn.textContent = 'Tap to Play';
   playBtn.style.cssText = `
     position: absolute;
     top: 50%;

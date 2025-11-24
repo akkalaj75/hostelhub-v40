@@ -1,4 +1,4 @@
-import { state } from '../core/state.js';
+﻿import { state } from '../core/state.js';
 import { SCREEN } from '../utils/constants.js';
 
 /**
@@ -55,19 +55,20 @@ export function showStatus(message, type = 'info') {
 export function updateConnectionQuality(connectionState) {
   const qualityEl = document.getElementById('quality');
   if (!qualityEl) return;
-
+  
   const states = {
-    connected: { text: 'Connected ✓', class: 'quality-good' },
+    connected: { text: 'Connected', class: 'quality-good' },
     connecting: { text: 'Connecting...', class: 'quality-fair' },
     disconnected: { text: 'Connection lost', class: 'quality-poor' },
     failed: { text: 'Failed', class: 'quality-poor' },
     closed: { text: 'Closed', class: 'quality-poor' }
   };
-
+  
   const state = states[connectionState] || states.connecting;
   qualityEl.textContent = state.text;
   qualityEl.className = state.class;
 }
+
 
 /**
  * Show stranger info with interests
@@ -76,7 +77,7 @@ export function showStrangerInfo(interests, college) {
   const infoEl = document.getElementById('stranger-info');
   const chatInfoEl = document.getElementById('stranger-info-chat');
   
-  let html = `<div>🎭 Connected with a stranger from ${college || 'your college'}</div>`;
+  let html = `<div>Connected with a stranger from ${college || 'your college'}</div>`;
   
   if (interests && interests.length > 0) {
     html += `<div class="stranger-interests">
@@ -94,7 +95,7 @@ export function showStrangerInfo(interests, college) {
 export function updateLiveUsersCounter(count) {
   const counter = document.getElementById('live-users-counter');
   if (counter) {
-    counter.innerHTML = `🟢 ${count} online`;
+        counter.innerHTML = `${count} online`;
     counter.style.display = 'block';
   }
 }
@@ -114,3 +115,4 @@ export function setLoading(element, isLoading) {
     element.textContent = element.dataset.originalText || element.textContent;
   }
 }
+

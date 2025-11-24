@@ -1,4 +1,4 @@
-import { onAuthChange, signup, login, resetPassword, logout } from './core/auth.js';
+﻿import { onAuthChange, signup, login, resetPassword, logout } from './core/auth.js';
 import { findMatch, skipMatch, cleanupMatch } from './features/matchmaking.js';
 import { toggleAudio, toggleVideo } from './features/rtc.js';
 import { sendMessage, saveChatHistory, addSystemMessage } from './features/chat.js';
@@ -20,13 +20,13 @@ import { getRandomIcebreaker, generateConversationStarters } from './services/ai
  * Initialize app
  */
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 HostelHub V40 Initializing...');
+  console.log('HostelHub V40 Initializing...');
   
   initializeAuth();
   initializeUI();
   initializeLiveCounter();
   
-  console.log('✅ HostelHub V40 Ready');
+  console.log('HostelHub V40 Ready');
 });
 
 /**
@@ -97,7 +97,7 @@ function initializeUI() {
 
   // Landing page navigation
   document.querySelector('.logo').onclick = () => scrollToTop();
-  document.querySelectorAll('.nav-cta').forEach(el => {
+  document.querySelectorAll('.nav-cta, .nav-trigger').forEach(el => {
     el.onclick = (e) => {
       e.preventDefault();
       openApp();
@@ -217,9 +217,14 @@ async function handleFindMatch() {
 
   try {
     setLoading(btn, true);
+    // Persist selections for subsequent skips/retries
+    state.profile.gender = gender;
+    state.profile.college = college;
     await findMatch(gender, college, state.ui.commType, state.profile.interests);
   } catch (error) {
     showStatus(error.message, 'error');
+  } finally {
+    // Always re-enable the button after the attempt completes
     setLoading(btn, false);
   }
 }
@@ -255,13 +260,13 @@ async function handleEndCall() {
 function handleMuteToggle() {
   const isMuted = toggleAudio();
   const btn = document.getElementById('muteBtn');
-  btn.textContent = isMuted ? '🔊 Unmute' : '🔇 Mute';
+  btn.textContent = isMuted ? 'Unmute' : 'Mute';
 }
 
 function handleVideoToggle() {
   const isOff = toggleVideo();
   const btn = document.getElementById('videoBtn');
-  btn.textContent = isOff ? '📹 On' : '📹 Off';
+  btn.textContent = isOff ? 'Video On' : 'Video Off';
 }
 
 // ============================================
@@ -326,7 +331,7 @@ function updateInterestTags() {
   container.innerHTML = state.profile.interests.map(interest => 
     `<div class="interest-tag">
       ${interest} 
-      <span class="remove" onclick="window.removeInterest('${interest}')">×</span>
+      <span class="remove" onclick="window.removeInterest('${interest}')">x</span>
     </div>`
   ).join('');
 }

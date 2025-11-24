@@ -1,7 +1,7 @@
-import { db, firebase } from '../services/firestore.js';
+import { db, firebase, batchDelete } from '../services/firestore.js';
 import { state } from '../core/state.js';
 import { showStatus } from '../ui/screens.js';
-import { startVideoCall } from './rtc.js';
+import { startVideoCall, resetRtcState } from './rtc.js';
 import { startTextChat } from './chat.js';
 import { APP_CONSTANTS } from '../config.js';
 
@@ -277,6 +277,7 @@ async function getWaitingCount(commType) {
  * Clean up queue entry
  */
 async function cleanupQueue(userId) {
+  if (!userId) return;
   try {
     await db.collection('waiting').doc(userId).delete();
   } catch (error) {
@@ -333,6 +334,7 @@ export async function cleanupMatch() {
 
   // Clear remote stream
   state.connection.remoteStream = null;
+  resetRtcState();
 
   // Cleanup Firestore
   const userId = state.user?.uid;
@@ -345,19 +347,14 @@ export async function cleanupMatch() {
   if (callId) {
     try {
       const callRef = db.collection('calls').doc(callId);
-      
-      // Delete subcollections
-      const [candidatesSnap, messagesSnap] = await Promise.all([
-        callRef.collection('candidates').limit(500).get(),
-        callRef.collection('messages').limit(500).get()
+
+      // Delete subcollections in batches to avoid residual docs
+      await Promise.all([
+        batchDelete(callRef.collection('candidates'), APP_CONSTANTS.FIRESTORE_BATCH_SIZE),
+        batchDelete(callRef.collection('messages'), APP_CONSTANTS.FIRESTORE_BATCH_SIZE)
       ]);
 
-      const batch = db.batch();
-      candidatesSnap.docs.forEach(doc => batch.delete(doc.ref));
-      messagesSnap.docs.forEach(doc => batch.delete(doc.ref));
-      batch.delete(callRef);
-      
-      await batch.commit();
+      await callRef.delete();
     } catch (error) {
       console.error('Firestore cleanup error:', error);
     }

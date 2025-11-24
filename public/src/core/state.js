@@ -41,6 +41,14 @@ class AppState {
       remoteUid: null,
       remoteInterests: []
     };
+    this.connection = {
+      pc: null,
+      localStream: null,
+      remoteStream: null,
+      isAudioMuted: false,
+      isVideoOff: false
+    };
+    this.cleanupListeners();
   }
 
   cleanupListeners() {

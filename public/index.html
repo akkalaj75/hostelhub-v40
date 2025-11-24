@@ -6,9 +6,9 @@
   <meta name="description" content="Connect anonymously with verified college students through video, voice, or chat. Safe and fun.">
   <meta name="keywords" content="college chat, student video call, anonymous chat, omegle for students">
   <meta name="author" content="HostelHub">
-  <meta name="theme-color" content="#0a0e27">
+  <meta name="theme-color" content="#0b1021">
   
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
   
   <meta property="og:type" content="website">
   <meta property="og:title" content="HostelHub - Connect with College Students">
@@ -35,50 +35,74 @@
 
   <!-- Hero Section -->
   <section class="hero">
+    <p class="hero-kicker">Designed for students, built for good vibes</p>
     <h1>Connect with College Students Anonymously</h1>
-    <p>Video chat, voice call, or text with verified students. Safe, anonymous, and fun.</p>
-    <button class="cta-btn">Start Matching Now →</button>
+    <p class="hero-subtitle">Video chat, voice call, or text with verified students. Safe, anonymous, and fun.</p>
+    <div class="hero-actions">
+      <button class="cta-btn">Start Matching Now →</button>
+      <button class="cta-ghost nav-trigger">See the app</button>
+    </div>
+    <div class="hero-metrics">
+      <div class="metric">
+        <span class="metric-value">10k+</span>
+        <span class="metric-label">students matched</span>
+      </div>
+      <div class="metric">
+        <span class="metric-value">24/7</span>
+        <span class="metric-label">live & moderated</span>
+      </div>
+      <div class="metric">
+        <span class="metric-value">Safe</span>
+        <span class="metric-label">report & block built-in</span>
+      </div>
+    </div>
   </section>
 
   <!-- Features -->
   <section class="features" id="features">
     <div class="feature-card">
-      <div class="feature-icon">📹</div>
+      <div class="feature-icon">🎥</div>
       <h3>Video & Voice</h3>
-      <p>High-quality video calls or voice-only chats with crystal clear audio</p>
+      <p>High-quality video calls or voice-only chats with crystal clear audio.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🎭</div>
+      <div class="feature-icon">✨</div>
       <h3>Anonymous Matching</h3>
-      <p>Connect randomly with verified students while staying anonymous</p>
+      <p>Connect randomly with verified students while staying anonymous.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">💬</div>
       <h3>Text Chat</h3>
-      <p>Prefer typing? Use our instant text chat with save feature</p>
+      <p>Prefer typing? Use our instant text chat with save feature.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🛡️</div>
       <h3>Safe & Secure</h3>
-      <p>Report/block features, no personal info shared, email verification required</p>
+      <p>Report/block tools, no personal info shared, email verification required.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">⭐️</div>
+      <div class="feature-icon">⏭️</div>
       <h3>Skip Anytime</h3>
-      <p>Not feeling the vibe? Skip to the next person instantly</p>
+      <p>Not feeling the vibe? Skip to the next person instantly.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🎯</div>
       <h3>Interest Matching</h3>
-      <p>Add interests and find people with similar hobbies</p>
+      <p>Add interests and find people with similar hobbies.</p>
     </div>
   </section>
 
   <!-- CTA Section -->
   <section class="cta-section" id="about">
-    <h2>Ready to make new friends?</h2>
-    <p>Join thousands of students connecting daily</p>
-    <button class="cta-btn">Launch HostelHub →</button>
+    <div class="cta-glow"></div>
+    <div class="cta-copy">
+      <h2>Ready to make new friends?</h2>
+      <p>Join thousands of students connecting daily.</p>
+    </div>
+    <div class="cta-actions">
+      <button class="cta-btn">Launch HostelHub →</button>
+      <button class="cta-ghost nav-trigger">Open app</button>
+    </div>
   </section>
 
   <!-- Footer -->
@@ -106,15 +130,15 @@
         <button id="forgotPasswordBtn" class="btn-secondary small">Forgot Password?</button>
         
         <div class="notice" style="display: none;" id="verify-notice">
-          ✉️ Verification email sent! Check your inbox and click the link.
+          ✅ Verification email sent! Check your inbox and click the link.
         </div>
         
         <div class="notice" style="display: none;" id="reset-notice">
-          🔧 Password reset email sent! Check your inbox.
+          🔁 Password reset email sent! Check your inbox.
         </div>
         
         <div class="safety-note">
-          🔒 Works with any email • Anonymous matching • No personal info shared
+          Works with any email · Anonymous matching · No personal info shared
         </div>
       </div>
 
@@ -125,11 +149,11 @@
         <div class="section-label">Communication Type:</div>
         <div class="comm-types">
           <div class="comm-type active" data-type="video">
-            <div class="comm-type-icon">📹</div>
+            <div class="comm-type-icon">🎥</div>
             <div class="comm-type-label">Video</div>
           </div>
           <div class="comm-type" data-type="voice">
-            <div class="comm-type-icon">🎤</div>
+            <div class="comm-type-icon">🎧</div>
             <div class="comm-type-label">Voice</div>
           </div>
           <div class="comm-type" data-type="chat">
@@ -157,7 +181,7 @@
           <option value="MIT">MIT</option>
           <option value="Stanford">Stanford University</option>
           <option value="Other">Other</option>
-          <option value="ANY">🌍 Match with Anyone</option>
+          <option value="ANY">Match with Anyone</option>
         </select>
         
         <div class="interests-section">
@@ -174,7 +198,7 @@
           <div id="blocked-list"></div>
         </div>
 
-        <button id="findBtn" class="btn-primary">🔍 Find Match</button>
+        <button id="findBtn" class="btn-primary">Find Match</button>
         <button id="logoutBtn" class="btn-secondary">Logout</button>
         
         <div class="safety-note">
@@ -199,15 +223,15 @@
         </div>
         
         <div class="video-controls">
-          <button id="muteBtn">🔇 Mute</button>
-          <button id="videoBtn">📹 Off</button>
-          <button id="skipBtn" class="btn-warning">⭐️ Skip</button>
-          <button id="reportBtn" class="btn-report">🚨 Report</button>
-          <button id="endCall" class="btn-danger">❌ End</button>
+          <button id="muteBtn">Mute</button>
+          <button id="videoBtn">Video Off</button>
+          <button id="skipBtn" class="btn-warning">Skip</button>
+          <button id="reportBtn" class="btn-report">Report</button>
+          <button id="endCall" class="btn-danger">End</button>
         </div>
         
         <div class="safety-note">
-          <span class="warning">⚠️</span> Report inappropriate behavior immediately.
+          <span class="warning">!</span> Report inappropriate behavior immediately.
         </div>
       </div>
       
@@ -223,14 +247,14 @@
         </div>
         
         <div class="chat-controls">
-          <button id="skipBtnChat" class="btn-warning">⭐️ Skip</button>
-          <button id="reportBtnChat" class="btn-report">🚨 Report</button>
-          <button id="saveChatBtn" class="btn-success">💾 Save</button>
-          <button id="endChat" class="btn-danger">❌ End</button>
+          <button id="skipBtnChat" class="btn-warning">Skip</button>
+          <button id="reportBtnChat" class="btn-report">Report</button>
+          <button id="saveChatBtn" class="btn-success">Save</button>
+          <button id="endChat" class="btn-danger">End</button>
         </div>
         
         <div class="safety-note">
-          <span class="warning">⚠️</span> Never share phone numbers, email, or social media.
+          <span class="warning">!</span> Never share phone numbers, email, or social media.
         </div>
       </div>
     </div>
@@ -239,7 +263,7 @@
   <!-- Report Modal -->
   <div id="reportModal" class="modal">
     <div class="modal-content">
-      <h3>🚨 Report User</h3>
+      <h3>Report User</h3>
       <p class="modal-description">Why are you reporting this user?</p>
       <select id="reportReason">
         <option value="">Select a reason</option>

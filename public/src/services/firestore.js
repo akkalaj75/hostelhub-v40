@@ -1,11 +1,14 @@
 import { firebaseConfig } from '../config.js';
 
+// Grab firebase from the window before use to avoid temporal dead zone issues
+const firebase = window.firebase;
+
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
 export const auth = firebase.auth();
 export const db = firebase.firestore();
-export const firebase = window.firebase;
+export { firebase };
 
 // Enable offline persistence
 db.enablePersistence({ synchronizeTabs: true })
