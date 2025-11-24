@@ -52,10 +52,12 @@ export function showStatus(message, type = 'info') {
 /**
  * Update connection quality indicator
  */
-export function updateConnectionQuality(connectionState) {
+export function updateConnectionQuality(connectionState, metrics = {}) {
   const qualityEl = document.getElementById('quality');
   if (!qualityEl) return;
-  
+
+  const { pingMs, bitrateMbps } = metrics;
+
   const states = {
     connected: { text: 'Connected', class: 'quality-good' },
     connecting: { text: 'Connecting...', class: 'quality-fair' },
@@ -63,9 +65,13 @@ export function updateConnectionQuality(connectionState) {
     failed: { text: 'Failed', class: 'quality-poor' },
     closed: { text: 'Closed', class: 'quality-poor' }
   };
-  
+
   const state = states[connectionState] || states.connecting;
-  qualityEl.textContent = state.text;
+  let parts = [state.text];
+  if (typeof pingMs === 'number') parts.push(`${Math.round(pingMs)} ms`);
+  if (typeof bitrateMbps === 'number') parts.push(`${bitrateMbps.toFixed(2)} Mbps`);
+
+  qualityEl.textContent = parts.join(' · ');
   qualityEl.className = state.class;
 }
 

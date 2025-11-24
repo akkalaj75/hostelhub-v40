@@ -14,6 +14,9 @@ const PONG_TIMEOUT_MS = 15000;
 let keepAliveInterval = null;
 let lastPong = 0;
 const CHAT_CHANNEL = 'chat';
+let prevBytesReceived = 0;
+let prevBytesSent = 0;
+let lastStatsAt = 0;
 
 /**
  * Start video/voice call with optimized WebRTC signaling
@@ -424,8 +427,19 @@ function startStatsMonitoring(pc) {
         }
       });
 
-      // Update UI with stats if needed
-      console.log('Stats:', { bytesReceived, bytesSent });
+      const now = Date.now();
+      if (lastStatsAt && now > lastStatsAt) {
+        const deltaMs = now - lastStatsAt;
+        const deltaRx = bytesReceived - prevBytesReceived;
+        const deltaTx = bytesSent - prevBytesSent;
+        const bitrateMbps = ((deltaRx + deltaTx) * 8) / (deltaMs / 1000) / 1_000_000;
+        const pingMs = lastPong ? (now - lastPong) : undefined;
+        updateConnectionQuality(pc.connectionState, { pingMs, bitrateMbps });
+      }
+
+      prevBytesReceived = bytesReceived;
+      prevBytesSent = bytesSent;
+      lastStatsAt = now;
     } catch (error) {
       console.error('Stats error:', error);
     }
@@ -453,6 +467,13 @@ export function resetRtcState() {
     try { state.connection.dataChannel.close(); } catch (_) {}
     state.connection.dataChannel = null;
   }
+  if (state.connection.chatChannel) {
+    try { state.connection.chatChannel.close(); } catch (_) {}
+    state.connection.chatChannel = null;
+  }
+  prevBytesReceived = 0;
+  prevBytesSent = 0;
+  lastStatsAt = 0;
 }
 
 /**
