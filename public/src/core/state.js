@@ -46,6 +46,7 @@ class AppState {
       localStream: null,
       remoteStream: null,
       dataChannel: null,
+      chatChannel: null,
       isAudioMuted: false,
       isVideoOff: false
     };

@@ -65,7 +65,25 @@ export async function sendMessage(text) {
     return { blocked: true, reason: 'abusive' };
   }
 
-  // Add to UI immediately (optimistic update)
+  // Prefer data channel if available (for active RTC sessions)
+  const dc = state.connection.chatChannel;
+  if (dc && dc.readyState === 'open') {
+    try {
+      dc.send(JSON.stringify({ type: 'chat', text: trimmedText, ts: Date.now() }));
+      addMessageToUI(trimmedText, 'local');
+      chatHistory.push({
+        from: 'You',
+        text: trimmedText,
+        time: new Date().toLocaleTimeString()
+      });
+      return { success: true, via: 'datachannel' };
+    } catch (error) {
+      console.error('Data channel send error', error);
+      // fall through to Firestore fallback
+    }
+  }
+
+  // Firestore fallback
   addMessageToUI(trimmedText, 'local');
   
   chatHistory.push({
@@ -74,7 +92,6 @@ export async function sendMessage(text) {
     time: new Date().toLocaleTimeString()
   });
 
-  // Send to Firestore
   try {
     await db.collection('calls').doc(state.match.callId)
       .collection('messages')
@@ -84,7 +101,7 @@ export async function sendMessage(text) {
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
     
-    return { success: true };
+    return { success: true, via: 'firestore' };
   } catch (error) {
     console.error('Send message error:', error);
     addSystemMessage('❌ Failed to send message');
@@ -162,4 +179,16 @@ export function clearChatMessages() {
  */
 export function getChatHistory() {
   return [...chatHistory];
+}
+
+/**
+ * Handle incoming data-channel chat payloads
+ */
+export function receiveDataChannelMessage(text, ts = Date.now()) {
+  addMessageToUI(text, 'remote');
+  chatHistory.push({
+    from: 'Stranger',
+    text,
+    time: new Date(ts).toLocaleTimeString()
+  });
 }

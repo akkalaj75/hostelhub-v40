@@ -13,6 +13,7 @@ const PING_INTERVAL_MS = 5000;
 const PONG_TIMEOUT_MS = 15000;
 let keepAliveInterval = null;
 let lastPong = 0;
+const CHAT_CHANNEL = 'chat';
 
 /**
  * Start video/voice call with optimized WebRTC signaling
@@ -119,6 +120,8 @@ async function initializePeerConnection(callId, isInitiator) {
 
   // Keepalive data channel
   setupKeepAliveChannel(pc, isInitiator);
+  // Chat data channel for low-latency messaging
+  setupChatChannel(pc, isInitiator);
 
   // Track statistics
   startStatsMonitoring(pc);
@@ -524,6 +527,45 @@ async function autoRequeue() {
   } catch (error) {
     console.error('Auto requeue failed', error);
   }
+}
+
+/**
+ * Chat data channel setup (used in video/voice sessions)
+ */
+function setupChatChannel(pc, isInitiator) {
+  if (isInitiator) {
+    const channel = pc.createDataChannel(CHAT_CHANNEL);
+    bindChatChannel(channel);
+  }
+
+  pc.ondatachannel = (event) => {
+    if (event.channel.label === CHAT_CHANNEL) {
+      bindChatChannel(event.channel);
+    } else if (event.channel.label === 'keepalive') {
+      bindDataChannel(event.channel);
+    }
+  };
+}
+
+function bindChatChannel(channel) {
+  state.connection.chatChannel = channel;
+  channel.onclose = () => {
+    state.connection.chatChannel = null;
+  };
+  channel.onerror = () => {
+    state.connection.chatChannel = null;
+  };
+  channel.onmessage = async (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      if (payload.type === 'chat' && payload.text) {
+        const { receiveDataChannelMessage } = await import('./chat.js');
+        receiveDataChannelMessage(payload.text, payload.ts);
+      }
+    } catch (e) {
+      console.error('Chat channel message parse error', e);
+    }
+  };
 }
 
 /**
