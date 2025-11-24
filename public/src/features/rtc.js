@@ -8,6 +8,7 @@ const CONNECTION_TIMEOUT = APP_CONSTANTS.CONNECTION_TIMEOUT_MS;
 let connectionTimer = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 3;
+const MAX_TOTAL_RETRIES = 5;
 const PING_INTERVAL_MS = 5000;
 const PONG_TIMEOUT_MS = 15000;
 let keepAliveInterval = null;
@@ -297,6 +298,7 @@ function handleConnectionStateChange(connectionState) {
     case 'connected':
       clearConnectionTimeout();
       reconnectAttempts = 0;
+      lastPong = Date.now();
       showStatus('Connected!', 'success');
       break;
       
@@ -333,7 +335,8 @@ function handleIceConnectionStateChange(iceState) {
  */
 async function attemptReconnect() {
   if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-    showStatus('Connection lost. Please skip to find new match.', 'error');
+    showStatus('Connection lost. Trying new match...', 'error');
+    autoRequeue();
     return;
   }
 
@@ -502,6 +505,24 @@ function stopKeepAlive() {
   if (keepAliveInterval) {
     clearInterval(keepAliveInterval);
     keepAliveInterval = null;
+  }
+}
+
+/**
+ * Auto requeue user after repeated failures
+ */
+async function autoRequeue() {
+  try {
+    const { cleanupMatch, skipMatch } = await import('./matchmaking.js');
+    await cleanupMatch();
+    showStatus('Rejoining queue...', 'info');
+    const { gender, college, interests } = state.profile;
+    const commType = state.ui.commType;
+    if (gender && college) {
+      await skipMatch();
+    }
+  } catch (error) {
+    console.error('Auto requeue failed', error);
   }
 }
 
