@@ -8,6 +8,10 @@ const CONNECTION_TIMEOUT = APP_CONSTANTS.CONNECTION_TIMEOUT_MS;
 let connectionTimer = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 3;
+const PING_INTERVAL_MS = 5000;
+const PONG_TIMEOUT_MS = 15000;
+let keepAliveInterval = null;
+let lastPong = 0;
 
 /**
  * Start video/voice call with optimized WebRTC signaling
@@ -111,6 +115,9 @@ async function initializePeerConnection(callId, isInitiator) {
   // Connection state monitoring
   pc.onconnectionstatechange = () => handleConnectionStateChange(pc.connectionState);
   pc.oniceconnectionstatechange = () => handleIceConnectionStateChange(pc.iceConnectionState);
+
+  // Keepalive data channel
+  setupKeepAliveChannel(pc, isInitiator);
 
   // Track statistics
   startStatsMonitoring(pc);
@@ -435,6 +442,67 @@ export function resetRtcState() {
   reconnectAttempts = 0;
   remoteDescriptionSet = false;
   candidateBuffer.length = 0;
+  stopKeepAlive();
+  if (state.connection.dataChannel) {
+    try { state.connection.dataChannel.close(); } catch (_) {}
+    state.connection.dataChannel = null;
+  }
+}
+
+/**
+ * Keepalive data channel (ping/pong) to detect stalls and trigger ICE restart
+ */
+function setupKeepAliveChannel(pc, isInitiator) {
+  if (isInitiator) {
+    const channel = pc.createDataChannel('keepalive');
+    bindDataChannel(channel);
+  }
+
+  pc.ondatachannel = (event) => {
+    if (event.channel.label === 'keepalive') {
+      bindDataChannel(event.channel);
+    }
+  };
+}
+
+function bindDataChannel(channel) {
+  state.connection.dataChannel = channel;
+  channel.onopen = () => {
+    lastPong = Date.now();
+    startKeepAlive();
+  };
+  channel.onclose = stopKeepAlive;
+  channel.onerror = stopKeepAlive;
+  channel.onmessage = (event) => {
+    if (event.data === 'ping') {
+      channel.send('pong');
+    } else if (event.data === 'pong') {
+      lastPong = Date.now();
+    }
+  };
+}
+
+function startKeepAlive() {
+  stopKeepAlive();
+  keepAliveInterval = setInterval(() => {
+    const channel = state.connection.dataChannel;
+    if (!channel || channel.readyState !== 'open') {
+      stopKeepAlive();
+      return;
+    }
+    channel.send('ping');
+    if (Date.now() - lastPong > PONG_TIMEOUT_MS) {
+      // No pong in time, try ICE restart
+      restartIce();
+    }
+  }, PING_INTERVAL_MS);
+}
+
+function stopKeepAlive() {
+  if (keepAliveInterval) {
+    clearInterval(keepAliveInterval);
+    keepAliveInterval = null;
+  }
 }
 
 /**

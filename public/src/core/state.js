@@ -45,6 +45,7 @@ class AppState {
       pc: null,
       localStream: null,
       remoteStream: null,
+      dataChannel: null,
       isAudioMuted: false,
       isVideoOff: false
     };
