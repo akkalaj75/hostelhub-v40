@@ -348,6 +348,13 @@ export async function cleanupMatch() {
     try {
       const callRef = db.collection('calls').doc(callId);
 
+      // Mark call as ended so rules allow deletion
+      try {
+        await callRef.set({ status: 'ended' }, { merge: true });
+      } catch (e) {
+        console.warn('Call status update before delete failed', e);
+      }
+
       // Delete subcollections in batches to avoid residual docs
       const collections = [
         callRef.collection('candidates'),
