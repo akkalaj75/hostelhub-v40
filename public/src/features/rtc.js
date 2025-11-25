@@ -537,13 +537,13 @@ function stopKeepAlive() {
  */
 async function autoRequeue() {
   try {
-    const { cleanupMatch, skipMatch } = await import('./matchmaking.js');
+    const { cleanupMatch, findMatch } = await import('./matchmaking.js');
     await cleanupMatch();
     showStatus('Rejoining queue...', 'info');
     const { gender, college, interests } = state.profile;
     const commType = state.ui.commType;
-    if (gender && college) {
-      await skipMatch();
+    if (gender && college && state.user?.uid) {
+      await findMatch(gender, college, commType, interests);
     }
   } catch (error) {
     console.error('Auto requeue failed', error);
