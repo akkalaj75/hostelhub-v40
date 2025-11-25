@@ -349,10 +349,18 @@ export async function cleanupMatch() {
       const callRef = db.collection('calls').doc(callId);
 
       // Delete subcollections in batches to avoid residual docs
-      await Promise.all([
-        batchDelete(callRef.collection('candidates'), APP_CONSTANTS.FIRESTORE_BATCH_SIZE),
-        batchDelete(callRef.collection('messages'), APP_CONSTANTS.FIRESTORE_BATCH_SIZE)
-      ]);
+      const collections = [
+        callRef.collection('candidates'),
+        callRef.collection('messages')
+      ];
+
+      for (const col of collections) {
+        // Loop batchDelete until collection is empty
+        let deleted = 0;
+        do {
+          deleted = await batchDelete(col, APP_CONSTANTS.FIRESTORE_BATCH_SIZE);
+        } while (deleted === APP_CONSTANTS.FIRESTORE_BATCH_SIZE);
+      }
 
       await callRef.delete();
     } catch (error) {
