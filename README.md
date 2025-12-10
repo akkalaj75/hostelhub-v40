@@ -80,8 +80,10 @@ firebase deploy --only firestore
 firebase deploy --only hosting
 
 # 5. Test locally
-firebase serve
+npm install
+npm start
 # Open http://localhost:5000
+# (static server for /public; no external deps)
 ```
 
 ---
