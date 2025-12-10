@@ -3,6 +3,7 @@ import { state } from '../core/state.js';
 import { showStatus } from '../ui/screens.js';
 import { detectContactInfo, detectAbusiveContent } from '../utils/sanitizers.js';
 import { APP_CONSTANTS } from '../config.js';
+import { generateConversationStarters, getRandomIcebreaker } from '../services/ai.js';
 
 let chatHistory = [];
 const MAX_MESSAGE_LENGTH = APP_CONSTANTS.MAX_MESSAGE_LENGTH;
@@ -36,7 +37,13 @@ export async function startTextChat(callId, remoteInterests) {
         });
       });
 
-    addSystemMessage('Connected! Say hello 👋');
+    addSystemMessage('Connected! Say hello :)');
+    const starters = generateConversationStarters(state.profile.interests || [], remoteInterests || []);
+    if (starters.length) {
+      addSystemMessage(`Try asking about: ${starters.join(' | ')}`);
+    } else {
+      addSystemMessage(`Icebreaker: ${getRandomIcebreaker()}`);
+    }
     showStatus('', 'info');
   } catch (error) {
     console.error('Start chat error:', error);

@@ -4,6 +4,7 @@ import { toggleAudio, toggleVideo } from './features/rtc.js';
 import { sendMessage, saveChatHistory, addSystemMessage } from './features/chat.js';
 import { reportUser, blockUser, unblockUser, getBlockedUsers } from './features/reporting.js';
 import { state } from './core/state.js';
+import { APP_CONSTANTS } from './config.js';
 import { 
   navigateToScreen, 
   showStatus, 
@@ -14,7 +15,9 @@ import {
 import { trackLiveUsers } from './services/firestore.js';
 import { validateEmail, validatePassword, validateInterest } from './utils/validators.js';
 import { SCREEN, COMM_TYPE } from './utils/constants.js';
-import { getRandomIcebreaker, generateConversationStarters } from './services/ai.js';
+import { loadPreferences, savePreferences } from './core/storage.js';
+
+let skipCooldownActive = false;
 
 /**
  * Initialize app
@@ -24,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   initializeAuth();
   initializeUI();
+  restorePreferences();
   initializeLiveCounter();
   
   console.log('HostelHub V40 Ready');
@@ -70,6 +74,10 @@ function initializeUI() {
       handleAddInterest();
     }
   });
+
+  // Profile selections
+  document.getElementById('gender').onchange = handleProfileSelectionChange;
+  document.getElementById('college').onchange = handleProfileSelectionChange;
 
   // Video controls
   document.getElementById('muteBtn').onclick = handleMuteToggle;
@@ -124,6 +132,38 @@ function initializeLiveCounter() {
   trackLiveUsers(count => {
     updateLiveUsersCounter(count);
   });
+}
+
+/**
+ * Restore saved setup preferences
+ */
+function restorePreferences() {
+  const prefs = loadPreferences();
+
+  const genderSelect = document.getElementById('gender');
+  const collegeSelect = document.getElementById('college');
+
+  if (genderSelect) {
+    genderSelect.value = prefs.gender || '';
+    state.profile.gender = genderSelect.value;
+  }
+
+  if (collegeSelect) {
+    collegeSelect.value = prefs.college || '';
+    state.profile.college = collegeSelect.value;
+  }
+
+  if (prefs.commType) {
+    const commEl = document.querySelector(`.comm-type[data-type="${prefs.commType}"]`);
+    if (commEl) {
+      selectCommType(commEl);
+    }
+  }
+
+  if (prefs.interests?.length) {
+    state.profile.interests = prefs.interests.slice(0, APP_CONSTANTS.MAX_INTERESTS);
+    updateInterestTags();
+  }
 }
 
 // ============================================
@@ -220,6 +260,7 @@ async function handleFindMatch() {
     // Persist selections for subsequent skips/retries
     state.profile.gender = gender;
     state.profile.college = college;
+    savePreferences({ gender, college });
     await findMatch(gender, college, state.ui.commType, state.profile.interests);
   } catch (error) {
     showStatus(error.message, 'error');
@@ -230,13 +271,26 @@ async function handleFindMatch() {
 }
 
 async function handleSkip() {
+  if (skipCooldownActive) {
+    showStatus(`Please wait ${APP_CONSTANTS.SKIP_COOLDOWN_MS / 1000}s before skipping again`, 'warning');
+    return;
+  }
+
   const confirmed = confirm('Skip to next match?');
   if (!confirmed) return;
+
+  skipCooldownActive = true;
+  setSkipButtonsDisabled(true);
 
   try {
     await skipMatch();
   } catch (error) {
     showStatus('Error skipping match', 'error');
+  } finally {
+    setTimeout(() => {
+      skipCooldownActive = false;
+      setSkipButtonsDisabled(false);
+    }, APP_CONSTANTS.SKIP_COOLDOWN_MS);
   }
 }
 
@@ -251,6 +305,15 @@ async function handleEndCall() {
   } catch (error) {
     showStatus('Error ending session', 'error');
   }
+}
+
+function setSkipButtonsDisabled(disabled) {
+  ['skipBtn', 'skipBtnChat'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.disabled = disabled;
+    }
+  });
 }
 
 // ============================================
@@ -300,8 +363,8 @@ function handleAddInterest() {
   const input = document.getElementById('interest-input');
   const interest = input.value.trim();
 
-  if (state.profile.interests.length >= 5) {
-    showStatus('Maximum 5 interests allowed', 'warning');
+  if (state.profile.interests.length >= APP_CONSTANTS.MAX_INTERESTS) {
+    showStatus(`Maximum ${APP_CONSTANTS.MAX_INTERESTS} interests allowed`, 'warning');
     return;
   }
 
@@ -318,12 +381,14 @@ function handleAddInterest() {
 
   state.profile.interests.push(validation.value);
   updateInterestTags();
+  persistInterests();
   input.value = '';
 }
 
 function removeInterest(interest) {
   state.profile.interests = state.profile.interests.filter(i => i !== interest);
   updateInterestTags();
+  persistInterests();
 }
 
 function updateInterestTags() {
@@ -336,8 +401,20 @@ function updateInterestTags() {
   ).join('');
 }
 
+function persistInterests() {
+  savePreferences({ interests: state.profile.interests });
+}
+
 // Expose to window for onclick handlers
 window.removeInterest = removeInterest;
+
+function handleProfileSelectionChange() {
+  const gender = document.getElementById('gender').value;
+  const college = document.getElementById('college').value;
+  state.profile.gender = gender;
+  state.profile.college = college;
+  savePreferences({ gender, college });
+}
 
 // ============================================
 // COMMUNICATION TYPE
@@ -350,6 +427,7 @@ function selectCommType(element) {
   
   element.classList.add('active');
   state.ui.commType = element.dataset.type;
+  savePreferences({ commType: state.ui.commType });
 }
 
 // ============================================

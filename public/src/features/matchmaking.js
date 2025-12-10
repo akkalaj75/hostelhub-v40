@@ -1,6 +1,6 @@
 import { db, firebase, batchDelete } from '../services/firestore.js';
 import { state } from '../core/state.js';
-import { showStatus } from '../ui/screens.js';
+import { showStatus, showStrangerInfo } from '../ui/screens.js';
 import { startVideoCall, resetRtcState } from './rtc.js';
 import { startTextChat } from './chat.js';
 import { APP_CONSTANTS } from '../config.js';
@@ -243,6 +243,7 @@ async function handleMatchSuccess(match) {
   state.match.remoteInterests = match.remoteInterests;
   state.match.callId = [state.user.uid, match.remoteUid].sort().join('_');
 
+  showStrangerInfo(match.remoteInterests, match.college);
   showStatus('Match found! Connecting...', 'success');
   
   await sleep(500);
