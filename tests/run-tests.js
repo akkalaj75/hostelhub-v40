@@ -17,6 +17,7 @@ import {
   detectMood,
   calculateEngagementScore
 } from '../public/src/services/ai.js';
+import { runStorageTests } from './storage.test.js';
 
 function testValidators() {
   assert.strictEqual(validateEmail('user@example.com').valid, true);
@@ -65,6 +66,7 @@ function run() {
   testValidators();
   testSanitizers();
   testAiHelpers();
+  runStorageTests();
   console.log('All tests passed');
 }
 

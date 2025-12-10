@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "start": "node scripts/serve.js",
+    "dev": "node scripts/serve.js",
     "test": "node tests/run-tests.js"
   }
 }
