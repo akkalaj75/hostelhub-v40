@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   initializeAuth();
   initializeUI();
+  applyGenderTheme(state.profile.gender);
   restorePreferences();
   initializeLiveCounter();
   
@@ -146,6 +147,7 @@ function restorePreferences() {
   if (genderSelect) {
     genderSelect.value = prefs.gender || '';
     state.profile.gender = genderSelect.value;
+    applyGenderTheme(state.profile.gender);
   }
 
   if (collegeSelect) {
@@ -413,7 +415,18 @@ function handleProfileSelectionChange() {
   const college = document.getElementById('college').value;
   state.profile.gender = gender;
   state.profile.college = college;
+  applyGenderTheme(gender);
   savePreferences({ gender, college });
+}
+
+function applyGenderTheme(gender) {
+  const body = document.body;
+  body.classList.toggle('theme-men', gender === 'men');
+  body.classList.toggle('theme-women', gender === 'women');
+  if (gender !== 'men' && gender !== 'women') {
+    body.classList.remove('theme-men');
+    body.classList.remove('theme-women');
+  }
 }
 
 // ============================================

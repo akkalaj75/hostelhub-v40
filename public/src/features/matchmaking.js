@@ -145,7 +145,8 @@ async function attemptMatch(userId, profile) {
         return {
           remoteUid: candidate.id,
           remoteInterests: candidate.data.interests || [],
-          college: candidate.data.college
+          college: candidate.data.college,
+          gender: candidate.data.gender || ''
         };
       }
     }
@@ -241,9 +242,10 @@ async function handleMatchSuccess(match) {
   state.match.state = 'matched';
   state.match.remoteUid = match.remoteUid;
   state.match.remoteInterests = match.remoteInterests;
+  state.match.remoteGender = match.gender || '';
   state.match.callId = [state.user.uid, match.remoteUid].sort().join('_');
 
-  showStrangerInfo(match.remoteInterests, match.college);
+  showStrangerInfo(match.remoteInterests, match.college, match.gender);
   showStatus('Match found! Connecting...', 'success');
   
   await sleep(500);

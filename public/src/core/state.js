@@ -12,7 +12,8 @@ class AppState {
       state: 'idle',
       callId: null,
       remoteUid: null,
-      remoteInterests: []
+      remoteInterests: [],
+      remoteGender: ''
     };
     this.connection = {
       pc: null,
@@ -39,7 +40,8 @@ class AppState {
       state: 'idle',
       callId: null,
       remoteUid: null,
-      remoteInterests: []
+      remoteInterests: [],
+      remoteGender: ''
     };
     this.connection = {
       pc: null,

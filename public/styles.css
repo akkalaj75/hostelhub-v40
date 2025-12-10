@@ -16,6 +16,16 @@
   --blur: blur(22px);
 }
 
+body.theme-men {
+  --accent: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
+  --accent-2: linear-gradient(135deg, #00c6ff, #0072ff);
+}
+
+body.theme-women {
+  --accent: linear-gradient(135deg, #ff7eb6 0%, #ff4f81 100%);
+  --accent-2: linear-gradient(135deg, #ff9ac7, #ff5f9f);
+}
+
 /* ============================================
    RESET & BASE
 ============================================ */
@@ -755,6 +765,40 @@ button.small {
   margin-bottom: 18px;
   font-size: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stranger-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gender-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.gender-men {
+  background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+  box-shadow: 0 4px 14px rgba(0, 210, 255, 0.3);
+}
+
+.gender-women {
+  background: linear-gradient(135deg, #ff7eb6, #ff4f81);
+  box-shadow: 0 4px 14px rgba(255, 105, 155, 0.3);
+}
+
+.gender-neutral {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
 }
 
 .stranger-interests {

@@ -79,12 +79,15 @@ export function updateConnectionQuality(connectionState, metrics = {}) {
 /**
  * Show stranger info with interests
  */
-export function showStrangerInfo(interests, college) {
+export function showStrangerInfo(interests, college, gender = '') {
   const infoEl = document.getElementById('stranger-info');
   const chatInfoEl = document.getElementById('stranger-info-chat');
-  
-  let html = `<div>Connected with a stranger from ${college || 'your college'}</div>`;
-  
+
+  const genderLabel = gender === 'men' ? 'Boy' : gender === 'women' ? 'Girl' : 'Student';
+  const genderClass = gender === 'men' ? 'gender-men' : gender === 'women' ? 'gender-women' : 'gender-neutral';
+
+  let html = `<div class="stranger-meta"><span class="gender-badge ${genderClass}">${genderLabel}</span> <span>Connected from ${college || 'your college'}</span></div>`;
+
   if (interests && interests.length > 0) {
     html += `<div class="stranger-interests">
       ${interests.map(i => `<span class="tag">${i}</span>`).join('')}
