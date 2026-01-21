@@ -71,7 +71,7 @@ export function updateConnectionQuality(connectionState, metrics = {}) {
   if (typeof pingMs === 'number') parts.push(`${Math.round(pingMs)} ms`);
   if (typeof bitrateMbps === 'number') parts.push(`${bitrateMbps.toFixed(2)} Mbps`);
 
-  qualityEl.textContent = parts.join(' · ');
+  qualityEl.textContent = parts.join(' | ');
   qualityEl.className = state.class;
 }
 
@@ -83,8 +83,8 @@ export function showStrangerInfo(interests, college, gender = '') {
   const infoEl = document.getElementById('stranger-info');
   const chatInfoEl = document.getElementById('stranger-info-chat');
 
-  const genderLabel = gender === 'men' ? 'Boy' : gender === 'women' ? 'Girl' : 'Student';
-  const genderClass = gender === 'men' ? 'gender-men' : gender === 'women' ? 'gender-women' : 'gender-neutral';
+  const genderLabel = gender === 'men' | 'Boy' : gender === 'women' | 'Girl' : 'Student';
+  const genderClass = gender === 'men' | 'gender-men' : gender === 'women' | 'gender-women' : 'gender-neutral';
 
   let html = `<div class="stranger-meta"><span class="gender-badge ${genderClass}">${genderLabel}</span> <span>Connected from ${college || 'your college'}</span></div>`;
 

@@ -6,6 +6,7 @@ import { startTextChat } from './chat.js';
 import { APP_CONSTANTS } from '../config.js';
 
 const MATCH_TIMEOUT = APP_CONSTANTS.MATCH_TIMEOUT_MS;
+const QUEUE_STALE_MS = APP_CONSTANTS.QUEUE_STALE_MS;
 let matchStartTime = null;
 let retryCount = 0;
 
@@ -26,6 +27,7 @@ export async function findMatch(gender, college, commType, interests) {
 
   try {
     await addToQueue(userId, { gender, college, commType, interests });
+    startIncomingMatchListener(userId);
     await matchLoop(userId, { gender, college, commType, interests });
   } catch (error) {
     console.error('Matchmaking error:', error);
@@ -78,6 +80,10 @@ async function matchLoop(userId, profile) {
     }
 
     const match = await attemptMatch(userId, profile);
+
+    if (state.match.state !== 'searching') {
+      return;
+    }
     
     if (match) {
       await handleMatchSuccess(match);
@@ -117,6 +123,7 @@ async function attemptMatch(userId, profile) {
         
         if (candidateId === userId) return false;
         if (state.profile.blockedUsers.includes(candidateId)) return false;
+        if (!isCandidateFresh(data)) return false;
         
         if (profile.college !== 'ANY' && data.college !== 'ANY') {
           if (data.college !== profile.college) return false;
@@ -139,14 +146,15 @@ async function attemptMatch(userId, profile) {
     });
 
     for (const candidate of candidates) {
-      const claimed = await claimMatch(userId, candidate.id);
+      const claimed = await claimMatch(userId, candidate.id, profile, candidate.data);
       
       if (claimed) {
         return {
           remoteUid: candidate.id,
           remoteInterests: candidate.data.interests || [],
           college: candidate.data.college,
-          gender: candidate.data.gender || ''
+          gender: candidate.data.gender || '',
+          callId: claimed.callId
         };
       }
     }
@@ -158,10 +166,17 @@ async function attemptMatch(userId, profile) {
   }
 }
 
+function isCandidateFresh(data) {
+  if (!data || !data.timestamp || typeof data.timestamp.toMillis !== 'function') {
+    return true;
+  }
+  return Date.now() - data.timestamp.toMillis() < QUEUE_STALE_MS;
+}
+
 /**
  * Atomically claim a match (prevents race conditions)
  */
-async function claimMatch(userId, targetId) {
+async function claimMatch(userId, targetId, profile, targetProfile) {
   const callId = [userId, targetId].sort().join('_');
   const callRef = db.collection('calls').doc(callId);
 
@@ -187,15 +202,23 @@ async function claimMatch(userId, targetId) {
         users: [userId, targetId],
         initiator: userId,
         status: 'connecting',
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        profiles: {
+          [userId]: {
+            gender: profile.gender,
+            college: profile.college,
+            interests: profile.interests || []
+          },
+          [targetId]: {
+            gender: targetProfile.gender || '',
+            college: targetProfile.college || '',
+            interests: targetProfile.interests || []
+          }
+        }
       });
 
-      // Remove both from queue
+      // Mark self as matched; target will update on receipt
       transaction.update(db.collection('waiting').doc(userId), {
-        searching: false,
-        matched: true
-      });
-      transaction.update(db.collection('waiting').doc(targetId), {
         searching: false,
         matched: true
       });
@@ -204,14 +227,13 @@ async function claimMatch(userId, targetId) {
     });
 
     if (claimed) {
-      // Cleanup queue entries after successful claim
+      // Cleanup own queue entry after successful claim
       setTimeout(async () => {
         await cleanupQueue(userId);
-        await cleanupQueue(targetId);
       }, 2000);
     }
 
-    return claimed;
+    return claimed ? { callId } : false;
   } catch (error) {
     console.error('Claim match error:', error);
     return false;
@@ -239,11 +261,12 @@ function calculateMatchScore(interests1, interests2) {
  * Handle successful match
  */
 async function handleMatchSuccess(match) {
+  stopIncomingMatchListener();
   state.match.state = 'matched';
   state.match.remoteUid = match.remoteUid;
   state.match.remoteInterests = match.remoteInterests;
   state.match.remoteGender = match.gender || '';
-  state.match.callId = [state.user.uid, match.remoteUid].sort().join('_');
+  state.match.callId = match.callId || [state.user.uid, match.remoteUid].sort().join('_');
 
   showStrangerInfo(match.remoteInterests, match.college, match.gender);
   showStatus('Match found! Connecting...', 'success');
@@ -380,6 +403,56 @@ export async function cleanupMatch() {
 
   // Reset state
   state.reset();
+}
+
+function startIncomingMatchListener(userId) {
+  stopIncomingMatchListener();
+  state.listeners.match = db.collection('calls')
+    .where('users', 'array-contains', userId)
+    .onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(async change => {
+        if (change.type !== 'added' && change.type !== 'modified') return;
+        if (state.match.state !== 'searching') return;
+
+        const data = change.doc.data();
+        if (!data || !Array.isArray(data.users)) return;
+        if (!data.users.includes(userId)) return;
+        if (data.status && data.status !== 'connecting') return;
+
+        const otherUid = data.users.find(uid => uid !== userId);
+        if (!otherUid) return;
+
+        await markOwnQueueMatched(userId);
+
+        const otherProfile = (data.profiles && data.profiles[otherUid]) || {};
+        await handleMatchSuccess({
+          callId: change.doc.id,
+          remoteUid: otherUid,
+          remoteInterests: otherProfile.interests || [],
+          college: otherProfile.college || '',
+          gender: otherProfile.gender || ''
+        });
+      });
+    });
+}
+
+function stopIncomingMatchListener() {
+  if (state.listeners.match) {
+    state.listeners.match();
+    state.listeners.match = null;
+  }
+}
+
+async function markOwnQueueMatched(userId) {
+  if (!userId) return;
+  try {
+    await db.collection('waiting').doc(userId).update({
+      searching: false,
+      matched: true
+    });
+  } catch (error) {
+    console.warn('Failed to mark queue matched:', error);
+  }
 }
 
 // Utility

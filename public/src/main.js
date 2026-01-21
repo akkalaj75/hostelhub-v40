@@ -18,6 +18,7 @@ import { SCREEN, COMM_TYPE } from './utils/constants.js';
 import { loadPreferences, savePreferences } from './core/storage.js';
 
 let skipCooldownActive = false;
+let findCooldownActive = false;
 
 /**
  * Initialize app
@@ -252,6 +253,21 @@ async function handleFindMatch() {
   const college = document.getElementById('college').value;
   const btn = document.getElementById('findBtn');
 
+  if (findCooldownActive) {
+    showStatus(`Please wait ${APP_CONSTANTS.FIND_COOLDOWN_MS / 1000}s before searching again`, 'warning');
+    return;
+  }
+
+  if (state.match.state === 'searching') {
+    showStatus('Already searching for a match', 'warning');
+    return;
+  }
+
+  if (state.match.state === 'connected') {
+    showStatus('End the current session before starting a new match', 'warning');
+    return;
+  }
+
   if (!gender || !college) {
     showStatus('Please select gender and college', 'error');
     return;
@@ -259,6 +275,11 @@ async function handleFindMatch() {
 
   try {
     setLoading(btn, true);
+    findCooldownActive = true;
+    setTimeout(() => {
+      findCooldownActive = false;
+    }, APP_CONSTANTS.FIND_COOLDOWN_MS);
+
     // Persist selections for subsequent skips/retries
     state.profile.gender = gender;
     state.profile.college = college;
