@@ -82,7 +82,7 @@ service cloud.firestore {
                );
       }
 
-      allow read: if isParticipant();
+      allow read: if isEmailVerified();
 
       allow create: if isEmailVerified()
         && request.resource.data.users is list
@@ -152,7 +152,7 @@ service cloud.firestore {
     // ============================================
 
     match /status/{userId} {
-      allow read: if isEmailVerified();
+      allow read: if true;
 
       allow write: if isOwner(userId)
         && isEmailVerified()
