@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   applyGenderTheme(state.profile.gender);
   restorePreferences();
   initializeLiveCounter();
+  initializeRevealAnimations();
   
   console.log('HostelHub V40 Ready');
 });
@@ -557,6 +558,34 @@ function toggleMenu() {
 
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================
+// REVEAL ANIMATIONS
+// ============================================
+
+function initializeRevealAnimations() {
+  const revealItems = Array.from(document.querySelectorAll('.reveal'));
+  if (!revealItems.length) return;
+
+  revealItems.forEach((el, index) => {
+    if (el.classList.contains('feature-card')) {
+      el.style.setProperty('--reveal-delay', `${index * 70}ms`);
+    } else {
+      el.style.setProperty('--reveal-delay', '0ms');
+    }
+  });
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('reveal-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  revealItems.forEach(el => observer.observe(el));
 }
 
 // Expose globals

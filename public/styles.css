@@ -116,6 +116,11 @@ body {
   }
 }
 
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
 /* ============================================
    NAVIGATION
 ============================================ */
@@ -293,10 +298,12 @@ nav {
   border: 1px solid var(--border);
   padding: 24px;
   box-shadow: var(--shadow);
+  animation: floatSlow 10s ease-in-out infinite;
 }
 
 .preview-card.secondary {
   background: rgba(255, 255, 255, 0.7);
+  animation-delay: 1.5s;
 }
 
 .preview-title {
@@ -479,6 +486,22 @@ nav {
   overflow: hidden;
 }
 
+/* ============================================
+   REVEAL ANIMATIONS
+============================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .cta-glow {
   position: absolute;
   inset: -40% -10%;
@@ -588,7 +611,7 @@ footer p {
    APP MODAL
 ============================================ */
 .app-modal {
-  display: none;
+  display: flex;
   position: fixed;
   top: 0;
   left: 0;
@@ -601,10 +624,16 @@ footer p {
   justify-content: center;
   padding: 20px;
   overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 .app-modal.active {
-  display: flex;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .app-container {
@@ -623,6 +652,15 @@ footer p {
   --text: #f8fafc;
   --muted: #cbd5f1;
   --border: rgba(255, 255, 255, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-animated,
+  .preview-card,
+  .reveal {
+    animation: none;
+    transition: none;
+  }
 }
 
 .close-btn {
