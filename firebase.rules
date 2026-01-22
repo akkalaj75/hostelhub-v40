@@ -55,7 +55,6 @@ service cloud.firestore {
         && request.resource.data.gender in ['men', 'women', 'other']
         && request.resource.data.commType in ['video', 'voice', 'chat']
         && request.resource.data.college is string
-        && request.resource.data.timestamp is timestamp
         && request.resource.data.interests is list
         && request.resource.data.interests.size() <= 5
         && request.resource.data.searching is bool
