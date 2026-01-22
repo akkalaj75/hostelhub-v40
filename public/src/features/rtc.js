@@ -261,14 +261,13 @@ async function setupSignaling(callId, isInitiator) {
       const offer = await state.connection.pc.createOffer();
       await state.connection.pc.setLocalDescription(offer);
       
-      await callRef.set({
+      await callRef.update({
         offer: {
           type: offer.type,
           sdp: offer.sdp
         },
-        initiator: state.user.uid,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+      });
     } catch (error) {
       console.error('Error creating offer:', error);
       throw error;
