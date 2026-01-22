@@ -62,7 +62,19 @@ service cloud.firestore {
 
       allow update: if isOwner(userId)
         && isEmailVerified()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['searching', 'matched', 'version']);
+        && request.resource.data.userId == userId
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly([
+               'userId',
+               'gender',
+               'college',
+               'commType',
+               'interests',
+               'searching',
+               'matched',
+               'version',
+               'timestamp'
+             ]);
 
       allow delete: if isOwner(userId) && isEmailVerified();
     }
