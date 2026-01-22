@@ -1,4 +1,4 @@
-import { auth, db } from '../services/firestore.js';
+import { auth, db, firebase } from '../services/firestore.js';
 import { state } from './state.js';
 import { showStatus, navigateToScreen } from '../ui/screens.js';
 
