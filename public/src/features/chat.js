@@ -1,9 +1,10 @@
 import { db, firebase } from '../services/firestore.js';
 import { state } from '../core/state.js';
-import { showStatus } from '../ui/screens.js';
+import { showStatus, navigateToScreen } from '../ui/screens.js';
 import { detectContactInfo, detectAbusiveContent } from '../utils/sanitizers.js';
 import { APP_CONSTANTS } from '../config.js';
 import { generateConversationStarters, getRandomIcebreaker } from '../services/ai.js';
+import { SCREEN } from '../utils/constants.js';
 
 let chatHistory = [];
 const MAX_MESSAGE_LENGTH = APP_CONSTANTS.MAX_MESSAGE_LENGTH;
@@ -14,6 +15,7 @@ const MAX_MESSAGE_LENGTH = APP_CONSTANTS.MAX_MESSAGE_LENGTH;
 export async function startTextChat(callId, remoteInterests) {
   try {
     chatHistory = [];
+    navigateToScreen(SCREEN.CHAT);
     
     // Listen for incoming messages
     state.listeners.chat = db.collection('calls').doc(callId)

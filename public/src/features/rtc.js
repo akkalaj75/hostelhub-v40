@@ -1,8 +1,8 @@
 ﻿import { db, firebase } from '../services/firestore.js';
 import { state } from '../core/state.js';
-import { showStatus, updateConnectionQuality } from '../ui/screens.js';
+import { showStatus, updateConnectionQuality, navigateToScreen } from '../ui/screens.js';
 import { ICE_SERVERS, APP_CONSTANTS } from '../config.js';
-import { COMM_TYPE } from '../utils/constants.js';
+import { COMM_TYPE, SCREEN } from '../utils/constants.js';
 
 const CONNECTION_TIMEOUT = APP_CONSTANTS.CONNECTION_TIMEOUT_MS;
 let connectionTimer = null;
@@ -28,6 +28,7 @@ export async function startVideoCall(callId, isInitiator, remoteInterests) {
     // Get media with retry
     const stream = await getMediaStreamWithRetry();
     state.connection.localStream = stream;
+    updateLocalPreview(stream);
 
     // Initialize peer connection
     await initializePeerConnection(callId, isInitiator);
@@ -38,6 +39,7 @@ export async function startVideoCall(callId, isInitiator, remoteInterests) {
     // Start connection timeout
     startConnectionTimeout();
 
+    navigateToScreen(SCREEN.VIDEO);
     showStatus('Connecting...', 'info');
   } catch (error) {
     console.error('StartVideoCall error:', error);
@@ -128,6 +130,23 @@ async function initializePeerConnection(callId, isInitiator) {
 
   // Track statistics
   startStatsMonitoring(pc);
+}
+
+function updateLocalPreview(stream) {
+  const localVideo = document.getElementById('local-video');
+  const remoteVideo = document.getElementById('remote-video');
+  if (!localVideo || !remoteVideo) return;
+
+  if (state.ui.commType === COMM_TYPE.VOICE) {
+    localVideo.style.display = 'none';
+    remoteVideo.style.display = 'none';
+    return;
+  }
+
+  localVideo.style.display = '';
+  remoteVideo.style.display = '';
+  localVideo.srcObject = stream;
+  localVideo.play().catch(() => {});
 }
 
 /**
