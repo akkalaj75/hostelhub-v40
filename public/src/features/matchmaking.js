@@ -1,4 +1,4 @@
-import { db, firebase, batchDelete } from '../services/firestore.js';
+import { db, firebase } from '../services/firestore.js';
 import { state } from '../core/state.js';
 import { showStatus, showStrangerInfo } from '../ui/screens.js';
 import { startVideoCall, resetRtcState } from './rtc.js';
@@ -7,11 +7,10 @@ import { APP_CONSTANTS } from '../config.js';
 
 const MATCH_TIMEOUT = APP_CONSTANTS.MATCH_TIMEOUT_MS;
 const QUEUE_STALE_MS = APP_CONSTANTS.QUEUE_STALE_MS;
-let matchStartTime = null;
-let retryCount = 0;
+let matchTimeoutTimer = null;
 
 /**
- * Start matchmaking with atomic transaction-based matching
+ * Start matchmaking with snapshot-based matching
  */
 export async function findMatch(gender, college, commType, interests) {
   if (!state.user) {
@@ -19,8 +18,6 @@ export async function findMatch(gender, college, commType, interests) {
   }
 
   const userId = state.user.uid;
-  matchStartTime = Date.now();
-  retryCount = 0;
   state.match.state = 'searching';
 
   showStatus('Finding match...', 'info');
@@ -28,7 +25,7 @@ export async function findMatch(gender, college, commType, interests) {
   try {
     await addToQueue(userId, { gender, college, commType, interests });
     startIncomingMatchListener(userId);
-    await matchLoop(userId, { gender, college, commType, interests });
+    startQueueListener(userId, { gender, college, commType, interests });
   } catch (error) {
     console.error('Matchmaking error:', error);
     await cleanupQueue(userId);
@@ -38,131 +35,98 @@ export async function findMatch(gender, college, commType, interests) {
 }
 
 /**
- * Add user to waiting queue atomically
+ * Add user to waiting queue (upsert)
  */
 async function addToQueue(userId, profile) {
   const queueRef = db.collection('waiting').doc(userId);
-  
-  await db.runTransaction(async (transaction) => {
-    const doc = await transaction.get(queueRef);
-    
-    if (doc.exists) {
-      console.warn('User already in queue, removing old entry');
-      transaction.delete(queueRef);
-    }
-    
-    transaction.set(queueRef, {
-      userId,
-      gender: profile.gender,
-      college: profile.college,
-      commType: profile.commType,
-      interests: profile.interests || [],
-      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      searching: true,
-      version: Date.now() // For optimistic locking
-    });
-  });
+
+  await queueRef.set({
+    userId,
+    gender: profile.gender,
+    college: profile.college,
+    commType: profile.commType,
+    interests: profile.interests || [],
+    searching: true,
+    matched: false,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    version: Date.now()
+  }, { merge: true });
 }
 
 /**
- * Optimized matching loop with exponential backoff
+ * Listen to the waiting queue and attempt a match
  */
-async function matchLoop(userId, profile) {
-  let attempts = 0;
-  const maxAttempts = 30;
-  
-  while (attempts < maxAttempts && state.match.state === 'searching') {
-    if (Date.now() - matchStartTime > MATCH_TIMEOUT) {
+function startQueueListener(userId, profile) {
+  stopQueueListener();
+
+  let attempting = false;
+
+  matchTimeoutTimer = setTimeout(async () => {
+    if (state.match.state === 'searching') {
+      stopQueueListener();
       await cleanupQueue(userId);
       state.match.state = 'idle';
       showStatus('No match found. Please try again.', 'error');
-      return;
     }
+  }, MATCH_TIMEOUT);
 
-    const match = await attemptMatch(userId, profile);
+  state.listeners.queue = db.collection('waiting')
+    .where('commType', '==', profile.commType)
+    .where('searching', '==', true)
+    .onSnapshot(async snapshot => {
+      if (state.match.state !== 'searching') return;
 
-    if (state.match.state !== 'searching') {
-      return;
-    }
-    
-    if (match) {
-      await handleMatchSuccess(match);
-      return;
-    }
+      const candidates = snapshot.docs
+        .filter(doc => {
+          const data = doc.data();
+          const candidateId = doc.id;
 
-    const waitingCount = await getWaitingCount(profile.commType);
-    showStatus(`Finding match... (${waitingCount} others waiting)`, 'info');
+          if (candidateId === userId) return false;
+          if (state.profile.blockedUsers.includes(candidateId)) return false;
+          if (!isCandidateFresh(data)) return false;
 
-    const delay = Math.min(1000 * Math.ceil((attempts + 1) / 2), 3000);
-    await sleep(delay);
-    
-    attempts++;
-  }
+          if (profile.college !== 'ANY' && data.college !== 'ANY') {
+            if (data.college !== profile.college) return false;
+          }
 
-  await cleanupQueue(userId);
-  state.match.state = 'idle';
-  showStatus('No match found. Please try again.', 'error');
+          if (data.gender !== profile.gender) return false;
+
+          return true;
+        })
+        .map(doc => ({ id: doc.id, data: doc.data() }));
+
+      const waitingCount = Math.max(snapshot.size - 1, 0);
+      showStatus(`Finding match... (${waitingCount} others waiting)`, 'info');
+
+      if (!candidates.length || attempting) return;
+
+      attempting = true;
+      const candidate = candidates[0];
+
+      const claimed = await claimMatch(userId, candidate.id, profile, candidate.data);
+      if (!claimed) {
+        attempting = false;
+        return;
+      }
+
+      await handleMatchSuccess({
+        remoteUid: candidate.id,
+        remoteInterests: candidate.data.interests || [],
+        college: candidate.data.college,
+        gender: candidate.data.gender || '',
+        callId: claimed.callId
+      });
+    });
 }
 
-/**
- * Attempt to match with another user using transaction
- */
-async function attemptMatch(userId, profile) {
-  try {
-    const snapshot = await db.collection('waiting')
-      .where('commType', '==', profile.commType)
-      .where('searching', '==', true)
-      .orderBy('timestamp', 'asc')
-      .limit(10)
-      .get();
-
-    const candidates = snapshot.docs
-      .filter(doc => {
-        const data = doc.data();
-        const candidateId = doc.id;
-        
-        if (candidateId === userId) return false;
-        if (state.profile.blockedUsers.includes(candidateId)) return false;
-        if (!isCandidateFresh(data)) return false;
-        
-        if (profile.college !== 'ANY' && data.college !== 'ANY') {
-          if (data.college !== profile.college) return false;
-        }
-        
-        if (data.gender !== profile.gender) return false;
-        
-        return true;
-      })
-      .map(doc => ({ id: doc.id, data: doc.data() }));
-
-    if (candidates.length === 0) {
-      return null;
-    }
-
-    candidates.sort((a, b) => {
-      const scoreA = calculateMatchScore(profile.interests, a.data.interests);
-      const scoreB = calculateMatchScore(profile.interests, b.data.interests);
-      return scoreB - scoreA;
-    });
-
-    for (const candidate of candidates) {
-      const claimed = await claimMatch(userId, candidate.id, profile, candidate.data);
-      
-      if (claimed) {
-        return {
-          remoteUid: candidate.id,
-          remoteInterests: candidate.data.interests || [],
-          college: candidate.data.college,
-          gender: candidate.data.gender || '',
-          callId: claimed.callId
-        };
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Attempt match error:', error);
-    return null;
+function stopQueueListener() {
+  if (state.listeners.queue) {
+    state.listeners.queue();
+    state.listeners.queue = null;
+  }
+  if (matchTimeoutTimer) {
+    clearTimeout(matchTimeoutTimer);
+    matchTimeoutTimer = null;
   }
 }
 
@@ -183,21 +147,13 @@ async function claimMatch(userId, targetId, profile, targetProfile) {
   try {
     const claimed = await db.runTransaction(async (transaction) => {
       const callDoc = await transaction.get(callRef);
-      
-      // Someone else already claimed this match
-      if (callDoc.exists) {
-        return false;
-      }
+      if (callDoc.exists) return false;
 
-      // Check both users still in queue
       const userDoc = await transaction.get(db.collection('waiting').doc(userId));
       const targetDoc = await transaction.get(db.collection('waiting').doc(targetId));
 
-      if (!userDoc.exists || !targetDoc.exists) {
-        return false;
-      }
+      if (!userDoc.exists || !targetDoc.exists) return false;
 
-      // Claim the match by creating call document
       transaction.set(callRef, {
         users: [userId, targetId],
         initiator: userId,
@@ -217,7 +173,6 @@ async function claimMatch(userId, targetId, profile, targetProfile) {
         }
       });
 
-      // Mark self as matched; target will update on receipt
       transaction.update(db.collection('waiting').doc(userId), {
         searching: false,
         matched: true
@@ -225,13 +180,6 @@ async function claimMatch(userId, targetId, profile, targetProfile) {
 
       return true;
     });
-
-    if (claimed) {
-      // Cleanup own queue entry after successful claim
-      setTimeout(async () => {
-        await cleanupQueue(userId);
-      }, 2000);
-    }
 
     return claimed ? { callId } : false;
   } catch (error) {
@@ -241,26 +189,10 @@ async function claimMatch(userId, targetId, profile, targetProfile) {
 }
 
 /**
- * Calculate interest similarity score (0-1)
- */
-function calculateMatchScore(interests1, interests2) {
-  if (!interests1.length || !interests2.length) return 0;
-  
-  const set1 = new Set(interests1.map(i => i.toLowerCase()));
-  const set2 = new Set(interests2.map(i => i.toLowerCase()));
-  
-  let common = 0;
-  set1.forEach(interest => {
-    if (set2.has(interest)) common++;
-  });
-  
-  return common / Math.max(set1.size, set2.size);
-}
-
-/**
  * Handle successful match
  */
 async function handleMatchSuccess(match) {
+  stopQueueListener();
   stopIncomingMatchListener();
   state.match.state = 'matched';
   state.match.remoteUid = match.remoteUid;
@@ -270,7 +202,7 @@ async function handleMatchSuccess(match) {
 
   showStrangerInfo(match.remoteInterests, match.college, match.gender);
   showStatus('Match found! Connecting...', 'success');
-  
+
   await sleep(500);
 
   const isInitiator = state.user.uid < match.remoteUid;
@@ -282,21 +214,6 @@ async function handleMatchSuccess(match) {
   }
 
   state.match.state = 'connected';
-}
-
-/**
- * Get count of users waiting
- */
-async function getWaitingCount(commType) {
-  try {
-    const snapshot = await db.collection('waiting')
-      .where('commType', '==', commType)
-      .where('searching', '==', true)
-      .get();
-    return snapshot.size;
-  } catch (error) {
-    return 0;
-  }
 }
 
 /**
@@ -318,14 +235,13 @@ export async function skipMatch() {
   if (state.match.state !== 'connected') return;
 
   showStatus('Finding new match...', 'info');
-  
+
   await cleanupMatch();
-  
-  // Re-initiate search
+
   const { gender, college } = state.profile;
   const { commType } = state.ui;
   const interests = state.profile.interests;
-  
+
   await findMatch(gender, college, commType, interests);
 }
 
@@ -333,10 +249,9 @@ export async function skipMatch() {
  * Complete cleanup of current match
  */
 export async function cleanupMatch() {
-  // Cleanup listeners
   state.cleanupListeners();
+  stopQueueListener();
 
-  // Close peer connection
   if (state.connection.pc) {
     try {
       state.connection.pc.close();
@@ -346,7 +261,6 @@ export async function cleanupMatch() {
     state.connection.pc = null;
   }
 
-  // Stop local stream
   if (state.connection.localStream) {
     state.connection.localStream.getTracks().forEach(track => {
       try {
@@ -358,11 +272,9 @@ export async function cleanupMatch() {
     state.connection.localStream = null;
   }
 
-  // Clear remote stream
   state.connection.remoteStream = null;
   resetRtcState();
 
-  // Cleanup Firestore
   const userId = state.user?.uid;
   const callId = state.match.callId;
 
@@ -374,25 +286,10 @@ export async function cleanupMatch() {
     try {
       const callRef = db.collection('calls').doc(callId);
 
-      // Mark call as ended so rules allow deletion
       try {
         await callRef.set({ status: 'ended' }, { merge: true });
       } catch (e) {
         console.warn('Call status update before delete failed', e);
-      }
-
-      // Delete subcollections in batches to avoid residual docs
-      const collections = [
-        callRef.collection('candidates'),
-        callRef.collection('messages')
-      ];
-
-      for (const col of collections) {
-        // Loop batchDelete until collection is empty
-        let deleted = 0;
-        do {
-          deleted = await batchDelete(col, APP_CONSTANTS.FIRESTORE_BATCH_SIZE);
-        } while (deleted === APP_CONSTANTS.FIRESTORE_BATCH_SIZE);
       }
 
       await callRef.delete();
@@ -401,7 +298,6 @@ export async function cleanupMatch() {
     }
   }
 
-  // Reset state
   state.reset();
 }
 
@@ -455,7 +351,6 @@ async function markOwnQueueMatched(userId) {
   }
 }
 
-// Utility
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }

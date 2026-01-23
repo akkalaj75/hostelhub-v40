@@ -27,6 +27,7 @@ class AppState {
       commType: 'video'
     };
     this.listeners = {
+      queue: null,
       match: null,
       call: null,
       candidates: null,
