@@ -85,12 +85,6 @@ function startQueueListener(userId, profile) {
           if (state.profile.blockedUsers.includes(candidateId)) return false;
           if (!isCandidateFresh(data)) return false;
 
-          if (profile.college !== 'ANY' && data.college !== 'ANY') {
-            if (data.college !== profile.college) return false;
-          }
-
-          if (data.gender !== profile.gender) return false;
-
           return true;
         })
         .map(doc => ({ id: doc.id, data: doc.data() }));
