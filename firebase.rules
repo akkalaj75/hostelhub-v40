@@ -85,12 +85,14 @@ service cloud.firestore {
 
     match /calls/{callId} {
 
+      function callData() {
+        return get(/databases/$(database)/documents/calls/$(callId)).data;
+      }
+
       function isParticipant() {
         return isEmailVerified()
-            && (
-                 request.auth.uid in resource.data.users ||
-                 request.auth.uid in request.resource.data.users
-               );
+          && callData() != null
+          && request.auth.uid in callData().users;
       }
 
       allow read: if isEmailVerified();
