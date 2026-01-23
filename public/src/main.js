@@ -12,13 +12,16 @@ import {
   updateLiveUsersCounter,
   setLoading 
 } from './ui/screens.js';
-import { trackLiveUsers } from './services/firestore.js';
+import { trackLiveUsers, db } from './services/firestore.js';
 import { validateEmail, validatePassword, validateInterest } from './utils/validators.js';
 import { SCREEN, COMM_TYPE } from './utils/constants.js';
 import { loadPreferences, savePreferences } from './core/storage.js';
 
 let skipCooldownActive = false;
 let findCooldownActive = false;
+let debugEnabled = false;
+let debugUnsubs = [];
+let debugStateTimer = null;
 
 /**
  * Initialize app
@@ -45,7 +48,9 @@ function initializeAuth() {
       document.getElementById('user-email').textContent = user.email.split('@')[0];
       navigateToScreen(SCREEN.SETUP);
       loadBlockedUsers();
+      setupDebugPanel(user.uid);
     } else {
+      teardownDebugPanel();
       navigateToScreen(SCREEN.LOGIN);
     }
   });
@@ -558,6 +563,77 @@ function toggleMenu() {
 
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================
+// DEBUG PANEL
+// ============================================
+
+function setupDebugPanel(userId) {
+  const panel = document.getElementById('debug-panel');
+  if (!panel) return;
+
+  debugEnabled = new URLSearchParams(window.location.search).get('debug') === '1';
+  if (!debugEnabled) {
+    panel.classList.add('hidden');
+    return;
+  }
+
+  panel.classList.remove('hidden');
+  updateDebugRow('debug-auth', `auth: ${userId}`);
+
+  debugStateTimer = setInterval(() => {
+    updateDebugRow('debug-state', `state: ${state.match.state} | ${state.ui.commType}`);
+  }, 500);
+
+  const queueUnsub = db.collection('waiting').doc(userId).onSnapshot(doc => {
+    if (!doc.exists) {
+      updateDebugRow('debug-queue', 'queue: none');
+      return;
+    }
+    const data = doc.data() || {};
+    updateDebugRow('debug-queue', `queue: ${data.searching ? 'searching' : 'idle'} | ${data.commType || '-'}`);
+  });
+
+  const waitingUnsub = db.collection('waiting')
+    .where('searching', '==', true)
+    .onSnapshot(snapshot => {
+      updateDebugRow('debug-waiting', `waiting: ${snapshot.size}`);
+    });
+
+  const callUnsub = db.collection('calls')
+    .where('users', 'array-contains', userId)
+    .onSnapshot(snapshot => {
+      if (snapshot.empty) {
+        updateDebugRow('debug-call', 'call: none');
+        return;
+      }
+      const doc = snapshot.docs[0];
+      const data = doc.data() || {};
+      updateDebugRow('debug-call', `call: ${doc.id} | ${data.status || '-'}`);
+    });
+
+  debugUnsubs = [queueUnsub, waitingUnsub, callUnsub];
+}
+
+function teardownDebugPanel() {
+  if (debugStateTimer) {
+    clearInterval(debugStateTimer);
+    debugStateTimer = null;
+  }
+  debugUnsubs.forEach(unsub => {
+    try { unsub(); } catch (_) {}
+  });
+  debugUnsubs = [];
+  const panel = document.getElementById('debug-panel');
+  if (panel) {
+    panel.classList.add('hidden');
+  }
+}
+
+function updateDebugRow(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
 }
 
 // ============================================
