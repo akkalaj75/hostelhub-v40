@@ -25,6 +25,7 @@ let debugStateTimer = null;
 let communityChannel = 'general';
 let communityUnsub = null;
 let communityMembersUnsub = null;
+let authMode = 'login';
 
 /**
  * Initialize app
@@ -68,6 +69,13 @@ function initializeUI() {
   document.getElementById('loginBtn').onclick = handleLogin;
   document.getElementById('forgotPasswordBtn').onclick = handleForgotPassword;
   document.getElementById('logoutBtn').onclick = handleLogout;
+
+  // Auth mode toggle
+  document.querySelectorAll('.auth-btn').forEach(btn => {
+    btn.onclick = () => setAuthMode(btn.dataset.auth);
+  });
+
+  setAuthMode(authMode);
 
   // Matchmaking
   document.getElementById('findBtn').onclick = handleFindMatch;
@@ -593,6 +601,31 @@ function toggleMenu() {
 
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================
+// AUTH TOGGLE
+// ============================================
+
+function setAuthMode(mode) {
+  authMode = mode === 'signup' ? 'signup' : 'login';
+  document.querySelectorAll('.auth-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.auth === authMode);
+  });
+
+  const signupBtn = document.getElementById('signupBtn');
+  const loginBtn = document.getElementById('loginBtn');
+  const forgotBtn = document.getElementById('forgotPasswordBtn');
+
+  if (authMode === 'signup') {
+    if (signupBtn) signupBtn.style.display = '';
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (forgotBtn) forgotBtn.style.display = 'none';
+  } else {
+    if (signupBtn) signupBtn.style.display = 'none';
+    if (loginBtn) loginBtn.style.display = '';
+    if (forgotBtn) forgotBtn.style.display = '';
+  }
 }
 
 // ============================================

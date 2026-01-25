@@ -361,6 +361,31 @@ footer p {
   margin-bottom: 30px;
 }
 
+.auth-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.auth-btn {
+  background: rgba(22, 33, 62, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px;
+  font-weight: 600;
+  color: #cbd5f5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: none;
+}
+
+.auth-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: rgba(0, 210, 255, 0.6);
+}
+
 .mode-toggle {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
