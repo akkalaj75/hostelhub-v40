@@ -217,32 +217,16 @@
               </div>
               <button class="community-cta">Create Room</button>
             </div>
-            <div class="community-messages">
-              <div class="community-message">
-                <span class="community-user">Ayesha</span>
-                <span class="community-text">Anyone up for a late study sprint?</span>
-              </div>
-              <div class="community-message">
-                <span class="community-user">Rohit</span>
-                <span class="community-text">Just joined the music lounge, come chill.</span>
-              </div>
-              <div class="community-message">
-                <span class="community-user">Neha</span>
-                <span class="community-text">Room booking tips? Need a quiet spot.</span>
-              </div>
-            </div>
+            <div class="community-messages" id="community-messages"></div>
             <div class="community-input">
-              <input type="text" placeholder="Send a message..." />
-              <button class="btn-small">Send</button>
+              <input type="text" id="community-input" placeholder="Send a message..." />
+              <button class="btn-small" id="community-send">Send</button>
             </div>
           </main>
 
           <aside class="community-members">
             <div class="community-header">Online Now</div>
-            <div class="member-item"><span class="presence"></span> Kiran</div>
-            <div class="member-item"><span class="presence"></span> Zoya</div>
-            <div class="member-item"><span class="presence"></span> Vivek</div>
-            <div class="member-item"><span class="presence"></span> Mia</div>
+            <div id="community-members"></div>
           </aside>
         </div>
       </div>

@@ -12,7 +12,7 @@ import {
   updateLiveUsersCounter,
   setLoading 
 } from './ui/screens.js';
-import { trackLiveUsers, db } from './services/firestore.js';
+import { trackLiveUsers, db, firebase } from './services/firestore.js';
 import { validateEmail, validatePassword, validateInterest } from './utils/validators.js';
 import { SCREEN, COMM_TYPE } from './utils/constants.js';
 import { loadPreferences, savePreferences } from './core/storage.js';
@@ -22,6 +22,9 @@ let findCooldownActive = false;
 let debugEnabled = false;
 let debugUnsubs = [];
 let debugStateTimer = null;
+let communityChannel = 'general';
+let communityUnsub = null;
+let communityMembersUnsub = null;
 
 /**
  * Initialize app
@@ -141,6 +144,20 @@ function initializeUI() {
   document.querySelectorAll('.channel-item').forEach(btn => {
     btn.onclick = () => setCommunityChannel(btn);
   });
+
+  const communitySend = document.getElementById('community-send');
+  if (communitySend) {
+    communitySend.onclick = sendCommunityMessage;
+  }
+  const communityInput = document.getElementById('community-input');
+  if (communityInput) {
+    communityInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendCommunityMessage();
+      }
+    });
+  }
 }
 
 /**
@@ -597,10 +614,12 @@ function setMode(mode) {
     if (videoContainer) videoContainer.style.display = 'none';
     if (chatContainer) chatContainer.style.display = 'none';
     state.ui.currentScreen = 'community';
+    startCommunity();
   } else {
     if (communityScreen) communityScreen.classList.remove('active');
     if (setupScreen) setupScreen.classList.add('active');
     state.ui.currentScreen = SCREEN.SETUP;
+    stopCommunity();
   }
 }
 
@@ -619,6 +638,103 @@ function setCommunityChannel(button) {
   if (subtitle) {
     subtitle.textContent = 'Community channel';
   }
+
+  communityChannel = button.dataset.channel || 'general';
+  subscribeCommunityChannel();
+}
+
+function startCommunity() {
+  subscribeCommunityChannel();
+  subscribeCommunityMembers();
+}
+
+function stopCommunity() {
+  if (communityUnsub) {
+    communityUnsub();
+    communityUnsub = null;
+  }
+  if (communityMembersUnsub) {
+    communityMembersUnsub();
+    communityMembersUnsub = null;
+  }
+}
+
+function subscribeCommunityChannel() {
+  const container = document.getElementById('community-messages');
+  if (!container || !state.user) return;
+
+  if (communityUnsub) {
+    communityUnsub();
+    communityUnsub = null;
+  }
+
+  container.innerHTML = '';
+
+  communityUnsub = db.collection('community')
+    .doc(communityChannel)
+    .collection('messages')
+    .orderBy('timestamp', 'asc')
+    .limit(100)
+    .onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type !== 'added') return;
+        const data = change.doc.data() || {};
+        const row = document.createElement('div');
+        row.className = 'community-message';
+        row.innerHTML = `<span class="community-user">${data.displayName || 'Student'}</span>` +
+          `<span class="community-text">${data.text || ''}</span>`;
+        container.appendChild(row);
+        container.scrollTop = container.scrollHeight;
+      });
+    });
+}
+
+async function sendCommunityMessage() {
+  const input = document.getElementById('community-input');
+  if (!input || !state.user) return;
+  const text = input.value.trim();
+  if (!text) return;
+
+  const displayName = state.user.email ? state.user.email.split('@')[0] : 'Student';
+
+  try {
+    await db.collection('community')
+      .doc(communityChannel)
+      .collection('messages')
+      .add({
+        text,
+        from: state.user.uid,
+        displayName,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    input.value = '';
+  } catch (error) {
+    showStatus('Failed to send community message', 'error');
+  }
+}
+
+function subscribeCommunityMembers() {
+  const container = document.getElementById('community-members');
+  if (!container) return;
+
+  if (communityMembersUnsub) {
+    communityMembersUnsub();
+    communityMembersUnsub = null;
+  }
+
+  communityMembersUnsub = db.collection('status')
+    .where('online', '==', true)
+    .limit(20)
+    .onSnapshot(snapshot => {
+      container.innerHTML = '';
+      snapshot.docs.forEach(doc => {
+        const data = doc.data() || {};
+        const row = document.createElement('div');
+        row.className = 'member-item';
+        row.innerHTML = `<span class="presence"></span> ${data.email || 'Student'}`;
+        container.appendChild(row);
+      });
+    });
 }
 
 // ============================================
