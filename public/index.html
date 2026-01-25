@@ -96,6 +96,11 @@
         <p class="subtitle">Connect with students anonymously</p>
       </div>
 
+      <div class="mode-toggle">
+        <button class="mode-btn active" data-mode="match">Match</button>
+        <button class="mode-btn" data-mode="community">Community</button>
+      </div>
+
       <!-- Login Screen -->
       <div id="login-screen" class="screen active">
         <input id="email" type="email" placeholder="your.email@gmail.com" />
@@ -180,6 +185,65 @@
         <div class="safety-note">
           You will be matched with someone using the same communication type.
           <span class="warning">Never share personal contact info.</span>
+        </div>
+      </div>
+
+      <!-- Community Screen -->
+      <div id="community-screen" class="screen">
+        <div class="community-shell">
+          <aside class="community-servers">
+            <div class="server-dot active">HH</div>
+            <div class="server-dot">CS</div>
+            <div class="server-dot">ART</div>
+            <div class="server-dot">DEV</div>
+          </aside>
+
+          <aside class="community-channels">
+            <div class="community-header">HostelHub Campus</div>
+            <div class="channel-group">Text Channels</div>
+            <button class="channel-item active" data-channel="general"># general</button>
+            <button class="channel-item" data-channel="introductions"># introductions</button>
+            <button class="channel-item" data-channel="night-owl"># night-owl</button>
+            <div class="channel-group">Voice Rooms</div>
+            <button class="channel-item" data-channel="study-room">&#128266; study-room</button>
+            <button class="channel-item" data-channel="music-lounge">&#127911; music-lounge</button>
+          </aside>
+
+          <main class="community-chat">
+            <div class="community-chat-header">
+              <div>
+                <div class="community-title"># general</div>
+                <div class="community-subtitle">Campus-wide hangout</div>
+              </div>
+              <button class="community-cta">Create Room</button>
+            </div>
+            <div class="community-messages">
+              <div class="community-message">
+                <span class="community-user">Ayesha</span>
+                <span class="community-text">Anyone up for a late study sprint?</span>
+              </div>
+              <div class="community-message">
+                <span class="community-user">Rohit</span>
+                <span class="community-text">Just joined the music lounge, come chill.</span>
+              </div>
+              <div class="community-message">
+                <span class="community-user">Neha</span>
+                <span class="community-text">Room booking tips? Need a quiet spot.</span>
+              </div>
+            </div>
+            <div class="community-input">
+              <input type="text" placeholder="Send a message..." />
+              <button class="btn-small">Send</button>
+            </div>
+          </main>
+
+          <aside class="community-members">
+            <div class="community-header">Online Now</div>
+            <div class="member-item"><span class="presence"></span> Kiran</div>
+            <div class="member-item"><span class="presence"></span> Zoya</div>
+            <div class="member-item"><span class="presence"></span> Vivek</div>
+            <div class="member-item"><span class="presence"></span> Mia</div>
+          </aside>
         </div>
       </div>
 

@@ -131,6 +131,16 @@ function initializeUI() {
   // Modal controls
   document.querySelector('.close-btn').onclick = closeApp;
   document.querySelector('.menu-toggle').onclick = toggleMenu;
+
+  // Mode toggle
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.onclick = () => setMode(btn.dataset.mode);
+  });
+
+  // Community channel switching
+  document.querySelectorAll('.channel-item').forEach(btn => {
+    btn.onclick = () => setCommunityChannel(btn);
+  });
 }
 
 /**
@@ -550,6 +560,9 @@ window.handleUnblock = handleUnblock;
 function openApp() {
   document.getElementById('appModal').classList.add('active');
   document.body.style.overflow = 'hidden';
+  if (state.user) {
+    setMode('match');
+  }
 }
 
 function closeApp() {
@@ -563,6 +576,49 @@ function toggleMenu() {
 
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================
+// MODE TOGGLE (MATCH vs COMMUNITY)
+// ============================================
+
+function setMode(mode) {
+  const buttons = document.querySelectorAll('.mode-btn');
+  buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+
+  const setupScreen = document.getElementById('setup-screen');
+  const communityScreen = document.getElementById('community-screen');
+  const videoContainer = document.getElementById('video-container');
+  const chatContainer = document.getElementById('chat-container');
+
+  if (mode === 'community') {
+    if (setupScreen) setupScreen.classList.remove('active');
+    if (communityScreen) communityScreen.classList.add('active');
+    if (videoContainer) videoContainer.style.display = 'none';
+    if (chatContainer) chatContainer.style.display = 'none';
+    state.ui.currentScreen = 'community';
+  } else {
+    if (communityScreen) communityScreen.classList.remove('active');
+    if (setupScreen) setupScreen.classList.add('active');
+    state.ui.currentScreen = SCREEN.SETUP;
+  }
+}
+
+function setCommunityChannel(button) {
+  document.querySelectorAll('.channel-item').forEach(btn => btn.classList.remove('active'));
+  button.classList.add('active');
+
+  const title = document.querySelector('.community-title');
+  const subtitle = document.querySelector('.community-subtitle');
+  const channelName = button.textContent.trim();
+
+  if (title) {
+    title.textContent = channelName.startsWith('#') ? channelName : `# ${channelName}`;
+  }
+
+  if (subtitle) {
+    subtitle.textContent = 'Community channel';
+  }
 }
 
 // ============================================
