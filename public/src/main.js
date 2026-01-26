@@ -55,7 +55,7 @@ function initializeAuth() {
       setupDebugPanel(user.uid);
     } else {
       teardownDebugPanel();
-      navigateToScreen(SCREEN.LOGIN);
+      showLoginAuth();
     }
   });
 }
@@ -69,13 +69,8 @@ function initializeUI() {
   document.getElementById('loginBtn').onclick = handleLogin;
   document.getElementById('forgotPasswordBtn').onclick = handleForgotPassword;
   document.getElementById('logoutBtn').onclick = handleLogout;
-
-  // Auth mode toggle
-  document.querySelectorAll('.auth-btn').forEach(btn => {
-    btn.onclick = () => setAuthMode(btn.dataset.auth);
-  });
-
-  setAuthMode(authMode);
+  document.getElementById('goSignupBtn').onclick = showSignupAuth;
+  document.getElementById('goLoginBtn').onclick = showLoginAuth;
 
   // Matchmaking
   document.getElementById('findBtn').onclick = handleFindMatch;
@@ -215,8 +210,8 @@ function restorePreferences() {
 // ============================================
 
 async function handleSignup() {
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
+  const email = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
   const btn = document.getElementById('signupBtn');
 
   const emailValidation = validateEmail(email);
@@ -234,7 +229,7 @@ async function handleSignup() {
   try {
     setLoading(btn, true);
     await signup(email, password);
-    document.getElementById('verify-notice').style.display = 'block';
+    document.getElementById('signup-verify-notice').style.display = 'block';
   } catch (error) {
     showStatus(error.message, 'error');
   } finally {
@@ -587,6 +582,8 @@ function openApp() {
   document.body.style.overflow = 'hidden';
   if (state.user) {
     setMode('match');
+  } else {
+    showLoginAuth();
   }
 }
 
@@ -604,28 +601,23 @@ function scrollToTop() {
 }
 
 // ============================================
-// AUTH TOGGLE
+// AUTH PAGES
 // ============================================
 
-function setAuthMode(mode) {
-  authMode = mode === 'signup' ? 'signup' : 'login';
-  document.querySelectorAll('.auth-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.auth === authMode);
-  });
+function showLoginAuth() {
+  const loginScreen = document.getElementById('login-screen');
+  const signupScreen = document.getElementById('signup-screen');
+  if (signupScreen) signupScreen.classList.remove('active');
+  if (loginScreen) loginScreen.classList.add('active');
+  authMode = 'login';
+}
 
-  const signupBtn = document.getElementById('signupBtn');
-  const loginBtn = document.getElementById('loginBtn');
-  const forgotBtn = document.getElementById('forgotPasswordBtn');
-
-  if (authMode === 'signup') {
-    if (signupBtn) signupBtn.style.display = '';
-    if (loginBtn) loginBtn.style.display = 'none';
-    if (forgotBtn) forgotBtn.style.display = 'none';
-  } else {
-    if (signupBtn) signupBtn.style.display = 'none';
-    if (loginBtn) loginBtn.style.display = '';
-    if (forgotBtn) forgotBtn.style.display = '';
-  }
+function showSignupAuth() {
+  const loginScreen = document.getElementById('login-screen');
+  const signupScreen = document.getElementById('signup-screen');
+  if (loginScreen) loginScreen.classList.remove('active');
+  if (signupScreen) signupScreen.classList.add('active');
+  authMode = 'signup';
 }
 
 // ============================================
